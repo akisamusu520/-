@@ -240,17 +240,18 @@ function calc(){
 
   // 補正なしの計算（今の除水量のまま終わった場合）
   const target_raw=pre-tdw;
+  // リンス判定：前体重>医師指示後体重なら除水あり→actual-0.2、それ以外はactualが0なら-0.2、0超なら actual-0.2
   const hasUF_raw=target_raw>0;
-  const net_raw=hasUF_raw?actual-RINSE:-RINSE;
+  const net_raw=actual>0?actual-RINSE:-RINSE;
   const residual_raw=target_raw-net_raw;
 
   // 補正ありの計算（本来の体重で考えた場合）
   const target_c=pre_c-tdw;
   const hasUF_c=target_c>0;
-  const net_c=hasUF_c?actual-RINSE:-RINSE;
+  const net_c=actual>0?actual-RINSE:-RINSE;
   const residual_c=target_c-net_c;
 
-  document.getElementById('rinse_hint').textContent=hasUF_raw
+  document.getElementById('rinse_hint').textContent=actual>0
     ?'リンス 0.2 kg を自動差し引き'
     :'除水なし・リンス 0.2 kg が体に入るだけ';
 
