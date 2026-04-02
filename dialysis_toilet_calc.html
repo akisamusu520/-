@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>透析トイレ離脱計算</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans JP', sans-serif; background: linear-gradient(180deg, #F1F3F5 0%, #E9ECEF 100%); min-height: 100vh; padding: 12px; -webkit-text-size-adjust: 100%; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.container { max-width: 520px; margin: 0 auto; }
+.header { background: linear-gradient(135deg, #1971C2, #1864AB); border-radius: 16px; padding: 20px 20px 14px; margin-bottom: 12px; color: #fff; }
+.header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.header-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.header-title { font-size: 20px; font-weight: 900; letter-spacing: 0.02em; }
+.header-sub { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+.header-date { font-size: 11px; opacity: 0.6; text-align: right; font-family: 'JetBrains Mono', monospace; }
+
+.section { background: #fff; border-radius: 14px; padding: 16px 16px 18px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.section-label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #495057; margin-bottom: 14px; }
+.section-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #1971C2; }
+.section-dot.orange { background: #E8590C; }
+
+.row2 { display: flex; gap: 10px; margin-bottom: 10px; }
+.field { flex: 1; }
+.field-label { display: block; font-size: 11px; font-weight: 600; margin-bottom: 5px; color: #495057; }
+.field-label.highlight { color: #1971C2; }
+.field-label.accent { color: #E8590C; }
+.input-wrap { display: flex; align-items: center; border: 1.5px solid #dee2e6; border-radius: 10px; overflow: hidden; transition: border-color 0.2s; }
+.input-wrap.highlight { border-color: rgba(25,113,194,0.2); background: #E7F5FF; }
+.input-wrap.accent { border-color: rgba(232,89,12,0.2); background: #FFF4E6; }
+.input-wrap input { flex: 1; border: none; outline: none; padding: 10px; font-size: 16px; font-family: 'JetBrains Mono', 'Noto Sans JP', sans-serif; font-weight: 600; background: transparent; width: 100%; min-width: 0; }
+.input-wrap .unit { padding: 0 10px 0 0; font-size: 13px; color: #868E96; font-weight: 500; white-space: nowrap; }
+
+.toilet-section { border: 2px solid rgba(232,89,12,0.13); background: #FFFBF7; }
+.toilet-note { display: flex; gap: 8px; align-items: flex-start; background: #FFF4E6; border: 1px solid rgba(232,89,12,0.13); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: #E8590C; font-weight: 500; margin-bottom: 14px; line-height: 1.5; }
+.toilet-note svg { flex-shrink: 0; margin-top: 2px; }
+
+.clothing-row { margin-bottom: 10px; }
+.clothing-label { font-size: 11px; font-weight: 600; color: #E8590C; margin-bottom: 6px; }
+.clothing-btn-group { display: flex; gap: 6px; }
+.clothing-toggle { flex: 1; padding: 8px 4px; border: 1.5px solid #dee2e6; border-radius: 8px; background: #fff; font-size: 12px; font-weight: 600; font-family: 'Noto Sans JP', sans-serif; color: #868E96; cursor: pointer; transition: all 0.15s; }
+.clothing-toggle.active-blue { border-color: #1971C2; background: #E7F5FF; color: #1971C2; }
+.clothing-toggle.active-orange { border-color: #E8590C; background: #FFF4E6; color: #E8590C; }
+
+.clothing-weight-field { margin-bottom: 10px; }
+
+.diff-preview { text-align: center; font-size: 13px; color: #868E96; margin-bottom: 12px; font-weight: 500; }
+.diff-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #495057; font-size: 15px; }
+
+.calc-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #E8590C, #D9480F); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; box-shadow: 0 2px 8px rgba(232,89,12,0.3); }
+.calc-btn:disabled { opacity: 0.4; }
+
+.result-section { background: #fff; border-radius: 14px; padding: 18px 16px 20px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); animation: fadeIn 0.3s ease-out; }
+.result-header { font-size: 15px; font-weight: 900; color: #212529; margin-bottom: 14px; text-align: center; }
+.result-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.result-card { background: #F8F9FA; border-radius: 12px; padding: 14px 16px; animation: slideUp 0.4s ease-out both; }
+.result-card-label { font-size: 11px; font-weight: 600; color: #868E96; margin-bottom: 4px; }
+.result-card-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; line-height: 1.1; }
+.result-card-unit { font-size: 14px; font-weight: 500; margin-left: 4px; opacity: 0.6; }
+.result-card-sub { font-size: 11px; color: #ADB5BD; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+
+.formula-box { background: #F1F3F5; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+.formula-title { font-size: 11px; font-weight: 700; color: #868E96; margin-bottom: 8px; }
+.formula-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+.formula-label { color: #495057; font-weight: 600; font-size: 11px; font-family: 'Noto Sans JP', sans-serif; }
+.formula-expr { color: #868E96; }
+
+.reset-btn { width: 100%; padding: 12px; background: #E8590C; color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; }
+
+.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="header-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+      </div>
+      <div>
+        <div class="header-title">透析トイレ離脱計算</div>
+        <div class="header-sub">除水量・引き残し自動調整</div>
+      </div>
+    </div>
+    <div class="header-date" id="headerDate"></div>
+  </div>
+
+  <!-- Current Settings -->
+  <div class="section">
+    <div class="section-label"><span class="section-dot"></span>現在の設定値</div>
+    <div class="row2">
+      <div class="field">
+        <label class="field-label highlight">現在の除水目標値</label>
+        <div class="input-wrap highlight"><input type="number" inputmode="decimal" id="currentRemoval"><span class="unit">kg</span></div>
+      </div>
+      <div class="field">
+        <label class="field-label highlight">現在の引き残し</label>
+        <div class="input-wrap highlight"><input type="number" inputmode="decimal" id="currentResidual"><span class="unit">kg</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toilet Break -->
+  <div class="section toilet-section">
+    <div class="section-label"><span class="section-dot orange"></span><span style="color:#E8590C;font-weight:700">トイレ離脱</span></div>
+    <div class="toilet-note">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8590C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>返血のため引き残しに +0.2 kg を自動加算します</span>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label class="field-label accent">トイレ前 体重</label>
+        <div class="input-wrap accent"><input type="number" inputmode="decimal" id="toiletPre"><span class="unit">kg</span></div>
+      </div>
+      <div class="field">
+        <label class="field-label accent">トイレ後 体重</label>
+        <div class="input-wrap accent"><input type="number" inputmode="decimal" id="toiletPost"><span class="unit">kg</span></div>
+      </div>
+    </div>
+
+    <!-- Clothing -->
+    <div class="clothing-row">
+      <div class="clothing-label">服装の変化</div>
+      <div class="clothing-btn-group">
+        <button class="clothing-toggle active-blue" id="clothNone" onclick="setClothing('')">変化なし</button>
+        <button class="clothing-toggle" id="clothHeavier" onclick="setClothing('heavier')">重くなった</button>
+        <button class="clothing-toggle" id="clothLighter" onclick="setClothing('lighter')">軽くなった</button>
+      </div>
+    </div>
+    <div class="clothing-weight-field hidden" id="clothingWeightField">
+      <div class="field">
+        <label class="field-label accent" id="clothingWeightLabel">増えた服の重さ</label>
+        <div class="input-wrap accent"><input type="number" inputmode="decimal" id="clothingWeight"><span class="unit">kg</span></div>
+      </div>
+    </div>
+
+    <div class="diff-preview hidden" id="diffPreview"></div>
+
+    <button class="calc-btn" id="calcBtn" disabled onclick="calculate()">計算する</button>
+  </div>
+
+  <!-- Result -->
+  <div class="result-section hidden" id="resultSection"></div>
+</div>
+
+<script>
+const RETURN_BLOOD_OFFSET = 0.2;
+let clothingDiff = '';
+
+// Date display
+(function() {
+  const now = new Date();
+  const days = ['日','月','火','水','木','金','土'];
+  const d = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+  const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('headerDate').textContent = `${d}（${days[now.getDay()]}）${t}`;
+})();
+
+// Input validation
+const inputs = ['currentRemoval','currentResidual','toiletPre','toiletPost','clothingWeight'];
+inputs.forEach(id => {
+  document.getElementById(id).addEventListener('input', () => { updatePreview(); updateCalcBtn(); });
+});
+
+function setClothing(val) {
+  clothingDiff = val;
+  document.getElementById('clothNone').className = 'clothing-toggle' + (val === '' ? ' active-blue' : '');
+  document.getElementById('clothHeavier').className = 'clothing-toggle' + (val === 'heavier' ? ' active-orange' : '');
+  document.getElementById('clothLighter').className = 'clothing-toggle' + (val === 'lighter' ? ' active-orange' : '');
+
+  const field = document.getElementById('clothingWeightField');
+  if (val === 'heavier' || val === 'lighter') {
+    field.classList.remove('hidden');
+    document.getElementById('clothingWeightLabel').textContent = val === 'heavier' ? '増えた服の重さ' : '減った服の重さ';
+  } else {
+    field.classList.add('hidden');
+    document.getElementById('clothingWeight').value = '';
+  }
+  updatePreview();
+  updateCalcBtn();
+}
+
+function updateCalcBtn() {
+  const ok = document.getElementById('currentRemoval').value !== '' &&
+             document.getElementById('currentResidual').value !== '' &&
+             document.getElementById('toiletPre').value !== '' &&
+             document.getElementById('toiletPost').value !== '';
+  document.getElementById('calcBtn').disabled = !ok;
+}
+
+function updatePreview() {
+  const pre = parseFloat(document.getElementById('toiletPre').value);
+  const post = parseFloat(document.getElementById('toiletPost').value);
+  const el = document.getElementById('diffPreview');
+
+  if (isNaN(pre) || isNaN(post)) { el.classList.add('hidden'); return; }
+
+  const diff = pre - post;
+  const cw = parseFloat(document.getElementById('clothingWeight').value) || 0;
+  const clothing = clothingDiff === 'heavier' ? cw : clothingDiff === 'lighter' ? -cw : 0;
+
+  let html = `体重差：<span class="diff-value">${diff.toFixed(2)} kg</span>`;
+  if (cw > 0 && (clothingDiff === 'heavier' || clothingDiff === 'lighter')) {
+    const actual = diff + clothing;
+    html += `<div style="margin-top:4px">補正後（実際の排泄量）：<span class="diff-value">${actual.toFixed(2)} kg</span></div>`;
+  }
+  el.innerHTML = html;
+  el.classList.remove('hidden');
+}
+
+function calculate() {
+  const pre = parseFloat(document.getElementById('toiletPre').value);
+  const post = parseFloat(document.getElementById('toiletPost').value);
+  const curRemoval = parseFloat(document.getElementById('currentRemoval').value);
+  const curResidual = parseFloat(document.getElementById('currentResidual').value);
+
+  if ([pre, post, curRemoval, curResidual].some(isNaN)) return;
+
+  const weightDiff = pre - post;
+  const cw = parseFloat(document.getElementById('clothingWeight').value) || 0;
+  const clothing = clothingDiff === 'heavier' ? cw : clothingDiff === 'lighter' ? -cw : 0;
+  const actualWeightDiff = Math.round((weightDiff + clothing) * 100) / 100;
+  const newRemoval = Math.round((curRemoval - actualWeightDiff) * 100) / 100;
+  const newResidual = Math.round((curResidual + RETURN_BLOOD_OFFSET - clothing) * 100) / 100;
+
+  let cardsHtml = '';
+
+  // Weight diff card
+  cardsHtml += resultCard('体重差（トイレ前後）',
+    `${weightDiff >= 0 ? '-' : '+'}${Math.abs(weightDiff).toFixed(2)}`, 'kg',
+    'トイレ前後の体重差', '#495057', false);
+
+  // Clothing adjusted card
+  if (clothing !== 0) {
+    cardsHtml += resultCard('補正後の排泄量',
+      `${actualWeightDiff >= 0 ? '-' : '+'}${Math.abs(actualWeightDiff).toFixed(2)}`, 'kg',
+      `体重差 ${clothing > 0 ? '+' : ''}${clothing.toFixed(2)} kg（服装補正）`, '#495057', false);
+  }
+
+  // New removal
+  cardsHtml += resultCard('新しい除水目標値',
+    newRemoval.toFixed(2), 'kg',
+    `${curRemoval.toFixed(2)} → ${newRemoval.toFixed(2)} kg`, '#1971C2', true);
+
+  // New residual
+  const residualSub = clothing !== 0
+    ? `${curResidual.toFixed(2)} + ${RETURN_BLOOD_OFFSET}（返血） − ${clothing.toFixed(2)}（服装）`
+    : `${curResidual.toFixed(2)} + ${RETURN_BLOOD_OFFSET}（返血）`;
+  cardsHtml += resultCard('新しい引き残し',
+    newResidual.toFixed(2), 'kg', residualSub, '#E8590C', true);
+
+  // Formula
+  const residualFormula = clothing !== 0
+    ? `${curResidual.toFixed(2)} + ${RETURN_BLOOD_OFFSET} − ${clothing.toFixed(2)} = <strong>${newResidual.toFixed(2)} kg</strong>`
+    : `${curResidual.toFixed(2)} + ${RETURN_BLOOD_OFFSET} = <strong>${newResidual.toFixed(2)} kg</strong>`;
+
+  const html = `
+    <div class="result-header">計算結果</div>
+    <div class="result-grid">${cardsHtml}</div>
+    <div class="formula-box">
+      <div class="formula-title">計算式</div>
+      <div class="formula-row">
+        <span class="formula-label">除水目標値</span>
+        <span class="formula-expr">${curRemoval.toFixed(2)} − ${actualWeightDiff.toFixed(2)} = <strong>${newRemoval.toFixed(2)} kg</strong></span>
+      </div>
+      <div class="formula-row">
+        <span class="formula-label">引き残し</span>
+        <span class="formula-expr">${residualFormula}</span>
+      </div>
+    </div>
+    <button class="reset-btn" onclick="fullReset()">リセット</button>
+  `;
+
+  const section = document.getElementById('resultSection');
+  section.innerHTML = html;
+  section.classList.remove('hidden');
+  section.scrollIntoView({ behavior: 'smooth' });
+}
+
+function resultCard(label, value, unit, sub, color, big) {
+  return `<div class="result-card" style="border-left:4px solid ${color}">
+    <div class="result-card-label">${label}</div>
+    <div class="result-card-value" style="color:${color};font-size:${big ? 36 : 28}px">${value}<span class="result-card-unit">${unit}</span></div>
+    <div class="result-card-sub">${sub}</div>
+  </div>`;
+}
+
+function fullReset() {
+  inputs.forEach(id => { document.getElementById(id).value = ''; });
+  setClothing('');
+  document.getElementById('diffPreview').classList.add('hidden');
+  document.getElementById('resultSection').classList.add('hidden');
+  document.getElementById('calcBtn').disabled = true;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
