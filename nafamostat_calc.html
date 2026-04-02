@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ナファモ計算機</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f2f2f7;
+            padding: 20px;
+            color: #1c1c1e;
+            -webkit-text-size-adjust: 100%;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        h2 {
+            text-align: center;
+            color: #007aff;
+            margin: 0 0 24px 0;
+            font-size: 1.3rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        select, input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 24px;
+            border: 1px solid #c6c6c8;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+            font-size: 1.1rem;
+            box-sizing: border-box;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .result-box {
+            background-color: #e5f9e7;
+            border: 2px solid #34c759;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 10px;
+            display: none;
+            text-align: center;
+        }
+        .result-item { margin-bottom: 16px; }
+        .result-item:last-child { margin-bottom: 0; }
+        
+        .result-label {
+            font-size: 0.9rem;
+            color: #3c3c43;
+            margin-bottom: 4px;
+        }
+        .result-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #34c759;
+        }
+        
+        button {
+            width: 100%;
+            padding: 16px;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,122,255,0.2);
+            touch-action: manipulation;
+        }
+        button:active {
+            background-color: #0062cc;
+            transform: scale(0.98);
+        }
+        .note {
+            font-size: 0.8rem;
+            color: #8e8e93;
+            margin-top: 24px;
+            background: #ffffff;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e5ea;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>ナファモスタット計算機</h2>
+
+    <label for="dose">医師指示量 (mg/hr)</label>
+    <select id="dose">
+        <option value="20">20 mg/hr</option>
+        <option value="30">30 mg/hr</option>
+        <option value="40">40 mg/hr</option>
+        <option value="50">50 mg/hr</option>
+    </select>
+
+    <label for="time">透析時間 (時間)</label>
+    <input type="number" id="time" placeholder="4.0" step="0.5" inputmode="decimal">
+
+    <button onclick="calculate()">計算する</button>
+
+    <div id="result" class="result-box">
+        <div class="result-item">
+            <div class="result-label">設定速度 (mL/hr)</div>
+            <div class="result-value"><span id="flowRate">0.0</span></div>
+        </div>
+        <hr style="border: 0; border-top: 1px dashed #34c759; margin: 15px 0;">
+        <div class="result-item">
+            <div class="result-label">使用バイアル数</div>
+            <div class="result-value" style="font-size: 1.5rem; color:#000;"><span id="vials">0</span> 本</div>
+            <div style="font-size: 0.9rem; margin-top:5px;">
+                (計 <span id="totalMg" style="font-weight:bold;">0</span>mg / 20mL)
+            </div>
+        </div>
+    </div>
+
+    <div class="note">
+        ※溶解液量は常に20mL（50%ブドウ糖液）で計算。<br>
+        ※プライミング分は含みません。必要に応じて時間を長めに入力してください。
+    </div>
+</div>
+
+<script>
+    function calculate() {
+        const dose = parseFloat(document.getElementById('dose').value);
+        const timeInput = document.getElementById('time').value;
+        const time = parseFloat(timeInput);
+
+        if (!timeInput || time <= 0) {
+            alert("透析時間を入力してください");
+            return;
+        }
+
+        const totalNeededMg = dose * time;
+        const vials = Math.ceil(totalNeededMg / 50);
+        const actualTotalMg = vials * 50;
+        const diluentVol = 20;
+        const concentration = actualTotalMg / diluentVol;
+        let flowRate = dose / concentration;
+        flowRate = Math.round(flowRate * 10) / 10;
+
+        document.getElementById('vials').innerText = vials;
+        document.getElementById('totalMg').innerText = actualTotalMg;
+        document.getElementById('flowRate').innerText = flowRate.toFixed(1);
+        document.getElementById('result').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
