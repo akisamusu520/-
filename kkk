@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>透析中抜け計算ツール</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #2c3e50; font-size: 1.2rem; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.9rem; font-weight: bold; margin-bottom: 5px; color: #34495e; }
+        input { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        button:active { background: #2980b9; }
+        .result-area { margin-top: 20px; padding: 15px; background: #e8f4fd; border-radius: 8px; border-left: 5px solid #3498db; }
+        .result-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
+        .value { color: #e74c3c; font-size: 1.1rem; }
+        .info { font-size: 0.8rem; color: #7f8c8d; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>透析中抜け計算</h2>
+        
+        <div class="input-group">
+            <label>設定時の除水目標 (kg)</label>
+            <input type="number" id="initialGoal" step="0.1" placeholder="例: 2.7">
+        </div>
+        <div class="input-group">
+            <label>設定時の引き残し (kg)</label>
+            <input type="number" id="initialResidual" step="0.1" value="0.0">
+        </div>
+        <hr>
+        <div class="input-group">
+            <label>トイレ直前体重 (kg)</label>
+            <input type="number" id="weightBefore" step="0.1" placeholder="例: 72.5">
+        </div>
+        <div class="input-group">
+            <label>トイレ直後体重 (kg)</label>
+            <input type="number" id="weightAfter" step="0.1" placeholder="例: 72.0">
+        </div>
+
+        <button onclick="calculate()">計算する</button>
+
+        <div id="result" class="result-area" style="display:none;">
+            <div class="result-item">
+                <span>変更後の除水目標：</span>
+                <span id="newGoal" class="value">-</span>
+                <span>kg</span>
+            </div>
+            <div class="result-item">
+                <span>変更後の引き残し：</span>
+                <span id="newResidual" class="value">-</span>
+                <span>kg</span>
+            </div>
+            <div style="font-size: 0.8rem; color: #666; margin-top: 10px;">
+                ※返血分 (+0.2kg) を引き残しに加算済み
+            </div>
+        </div>
+        
+        <div class="info">Clinical Engineering App</div>
+    </div>
+
+    <script>
+        function calculate() {
+            const initialGoal = parseFloat(document.getElementById('initialGoal').value) || 0;
+            const initialResidual = parseFloat(document.getElementById('initialResidual').value) || 0;
+            const weightBefore = parseFloat(document.getElementById('weightBefore').value) || 0;
+            const weightAfter = parseFloat(document.getElementById('weightAfter').value) || 0;
+
+            if(weightBefore === 0 || weightAfter === 0) {
+                alert("体重を入力してください");
+                return;
+            }
+
+            // 排出量を計算
+            const weightLoss = weightBefore - weightAfter;
+            
+            // 新しい除水目標 = 元の目標 - 排出量
+            const newGoal = initialGoal - weightLoss;
+            
+            // 新しい引き残し = 元の引き残し + 返血分(0.2)
+            const newResidual = initialResidual + 0.2;
+
+            document.getElementById('newGoal').innerText = newGoal.toFixed(2);
+            document.getElementById('newResidual').innerText = newResidual.toFixed(2);
+            document.getElementById('result').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
