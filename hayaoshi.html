@@ -66,7 +66,7 @@
   <div style="margin-top:2rem;text-align:center">
     <div style="font-size:52px">🎯</div>
     <h1 style="margin-top:8px">早押しクイズ</h1>
-    <p class="sub" style="margin-top:6px">最大10人でリアルタイム対戦</p>
+
   </div>
   <div class="tabs" style="margin-top:0.5rem">
     <button class="tab active" id="tab-host-btn" onclick="switchTab('host')">ホスト</button>
@@ -104,9 +104,6 @@
 
 <!-- 参加者用：早押し画面 -->
 <div id="s-buzz" class="screen">
-  <div style="margin-top:0.5rem;text-align:center;width:100%">
-    <div class="round-label" id="round-label">第1問</div>
-  </div>
   <div class="status-bar" id="buzz-status">準備完了 — 答えが分かったら押せ！</div>
   <div class="buzz-wrap">
     <button class="buzz-btn ready" id="buzz-btn" onclick="pressBuzz()">
@@ -121,8 +118,7 @@
 <!-- ホスト用：管理画面 -->
 <div id="s-host" class="screen">
   <div style="margin-top:0.5rem;text-align:center;width:100%">
-    <div class="round-label" id="host-round-label">第1問</div>
-    <h2 style="margin-top:4px">ホスト管理画面</h2>
+    <h2>ホスト管理画面</h2>
   </div>
   <div class="status-bar" id="host-status">早押し受付中...</div>
   <div class="card">
@@ -141,9 +137,9 @@
   <div style="margin-top:1.5rem;text-align:center">
     <div style="font-size:48px">🏆</div>
     <h2 style="margin-top:8px">ゲーム終了！</h2>
+    <p class="sub" style="margin-top:8px">お疲れさまでした</p>
   </div>
-  <div class="rank-list" id="result-list"></div>
-  <button class="btn btn-primary" onclick="backHome()" style="margin-top:0.5rem">もう一度遊ぶ</button>
+  <button class="btn btn-primary" onclick="backHome()" style="margin-top:1rem">もう一度遊ぶ</button>
   <div class="spacer"></div>
 </div>
 
@@ -316,7 +312,6 @@ function handleGuestData(d){
 }
 
 function renderHostScreen(){
-  document.getElementById('host-round-label').textContent = `第 ${state.round} 問`;
   const order = state.buzzOrder;
   const ranksEl = document.getElementById('host-buzz-ranks');
   const noBuzzEl = document.getElementById('host-no-buzz');
@@ -340,7 +335,6 @@ function renderHostScreen(){
 }
 
 function renderGuestBuzzScreen(){
-  document.getElementById('round-label').textContent = `第 ${state.round} 問`;
   const btn = document.getElementById('buzz-btn');
   const myBuzzed = state.buzzOrder.find(b=>b.id===state.myId);
 
