@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🎯 早押しクイズ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --purple:#5a4fd8;--purple-dark:#4a3fc8;--green:#27ae60;
+    --bg:#f7f7f8;--card:#ffffff;--text:#1a1a1a;--sub:#6b6b7b;
+    --border:#e0e0e8;--radius:14px;--radius-sm:10px;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;align-items:center}
+  .screen{display:none;flex-direction:column;align-items:center;gap:1rem;width:100%;max-width:420px;padding:1.5rem 1rem;min-height:100dvh}
+  .screen.active{display:flex}
+
+  h1{font-size:26px;font-weight:700;letter-spacing:-0.5px}
+  h2{font-size:20px;font-weight:600}
+  .sub{font-size:14px;color:var(--sub);text-align:center;line-height:1.5}
+
+  .card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:1.25rem;width:100%}
+
+  .tabs{display:flex;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);padding:4px;width:100%;gap:4px}
+  .tab{flex:1;padding:10px;border-radius:8px;border:none;background:transparent;font-size:15px;font-weight:500;cursor:pointer;color:var(--sub);transition:all 0.15s}
+  .tab.active{background:var(--purple);color:#fff}
+
+  input[type=text]{width:100%;padding:13px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:16px;background:var(--card);color:var(--text);outline:none;transition:border-color 0.15s}
+  input[type=text]:focus{border-color:var(--purple)}
+
+  .btn{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.15s;letter-spacing:0.2px}
+  .btn:active{transform:scale(0.98)}
+  .btn-primary{background:var(--purple);color:#fff}
+  .btn-primary:hover{background:var(--purple-dark)}
+  .btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+  .btn-secondary:hover{background:var(--bg)}
+  .btn-danger{background:#e74c3c;color:#fff}
+  .btn-danger:hover{background:#c0392b}
+  .btn-success{background:var(--green);color:#fff}
+
+  .room-code{font-size:42px;font-weight:800;letter-spacing:10px;color:var(--purple);text-align:center;padding:1rem 0}
+
+  .players-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+  .player-slot{background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);padding:11px 13px;font-size:13px;color:var(--sub);display:flex;align-items:center;gap:8px;min-height:46px}
+  .player-slot.joined{background:var(--card);border-color:var(--purple);color:var(--text)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0}
+  .player-slot.joined .dot{background:var(--green)}
+
+  .status-bar{background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);padding:10px 16px;font-size:13px;color:var(--sub);text-align:center;width:100%}
+
+  .share-row{display:flex;gap:8px;align-items:center;width:100%}
+  .share-url{flex:1;font-size:12px;color:var(--sub);word-break:break-all;line-height:1.4}
+  .copy-btn{flex-shrink:0;padding:8px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text)}
+  .copy-btn:active{background:var(--bg)}
+
+  /* buzz button */
+  .buzz-wrap{width:100%;display:flex;justify-content:center;padding:0.5rem 0}
+  .buzz-btn{width:240px;height:240px;border-radius:50%;border:none;cursor:pointer;font-size:22px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform 0.1s,box-shadow 0.1s;user-select:none;-webkit-user-select:none;box-shadow:0 6px 24px rgba(90,79,216,0.25)}
+  .buzz-btn .icon{font-size:56px;line-height:1}
+  .buzz-btn.ready{background:var(--purple);color:#fff}
+  .buzz-btn.ready:active{transform:scale(0.93);box-shadow:0 2px 8px rgba(90,79,216,0.2)}
+  .buzz-btn.winner{background:var(--green);color:#fff;animation:pop 0.35s ease;box-shadow:0 6px 24px rgba(39,174,96,0.35)}
+  .buzz-btn.locked{background:var(--bg);color:var(--sub);box-shadow:none;cursor:not-allowed;border:1px solid var(--border)}
+  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+  .round-label{font-size:13px;font-weight:600;color:var(--purple);letter-spacing:1px;text-transform:uppercase}
+
+  .rank-list{width:100%;display:flex;flex-direction:column;gap:6px}
+  .rank-item{background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);padding:11px 14px;display:flex;align-items:center;gap:10px}
+  .rank-num{font-size:18px;font-weight:700;width:28px;text-align:center;color:var(--sub)}
+  .rank-num.gold{color:#d4a017}
+  .rank-name{flex:1;font-size:15px;font-weight:500}
+  .rank-time{font-size:12px;color:var(--sub)}
+  .rank-you{font-size:11px;background:#f0eeff;color:var(--purple);padding:2px 8px;border-radius:20px;font-weight:600}
+
+  .result-medal{font-size:48px;text-align:center}
+  .winner-name{font-size:24px;font-weight:700;text-align:center}
+
+  .divider{width:100%;height:1px;background:var(--border)}
+  .spacer{flex:1}
+
+  @media(max-width:380px){
+    .buzz-btn{width:200px;height:200px}
+    .buzz-btn .icon{font-size:44px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ホーム -->
+<div id="s-home" class="screen active">
+  <div style="margin-top:2rem;text-align:center">
+    <div style="font-size:52px">🎯</div>
+    <h1 style="margin-top:8px">早押しクイズ</h1>
+    <p class="sub" style="margin-top:6px">最大8人でリアルタイム対戦</p>
+  </div>
+  <div class="tabs" style="margin-top:0.5rem">
+    <button class="tab active" id="tab-host-btn" onclick="switchTab('host')">ホスト</button>
+    <button class="tab" id="tab-join-btn" onclick="switchTab('join')">参加</button>
+  </div>
+
+  <div id="tab-host" style="width:100%;display:flex;flex-direction:column;gap:10px">
+    <input type="text" id="host-name" placeholder="あなたの名前" maxlength="12" />
+    <button class="btn btn-primary" onclick="hostGame()">ルームを作成する</button>
+  </div>
+  <div id="tab-join" style="width:100%;display:none;flex-direction:column;gap:10px">
+    <input type="text" id="join-name" placeholder="あなたの名前" maxlength="12" />
+    <input type="text" id="join-code" placeholder="4桁のルームコード" maxlength="4"
+      style="letter-spacing:6px;text-align:center;font-size:22px;font-weight:700" />
+    <button class="btn btn-primary" onclick="joinGame()">参加する</button>
+  </div>
+  <p id="home-error" style="color:#e74c3c;font-size:13px;display:none;text-align:center"></p>
+  <div class="spacer"></div>
+</div>
+
+<!-- ロビー -->
+<div id="s-lobby" class="screen">
+  <h2 style="margin-top:1rem">ロビー</h2>
+  <div class="room-code" id="lobby-code">----</div>
+  <p class="sub">このコードを参加者に教えてください</p>
+  <div class="card">
+    <div class="share-row">
+      <div class="share-url" id="share-url"></div>
+      <button class="copy-btn" onclick="copyShare()">コピー</button>
+    </div>
+  </div>
+  <div class="players-grid" id="lobby-players"></div>
+  <div class="status-bar" id="lobby-status">参加者を待っています...</div>
+  <button class="btn btn-primary" id="start-btn" onclick="startGame()" style="display:none">クイズを開始する →</button>
+  <button class="btn btn-secondary" onclick="leaveGame()">退出する</button>
+  <div class="spacer"></div>
+</div>
+
+<!-- 早押し -->
+<div id="s-buzz" class="screen">
+  <div style="margin-top:0.5rem;text-align:center;width:100%">
+    <div class="round-label" id="round-label">第1問</div>
+    <h2 style="margin-top:4px" id="buzz-question">問題を読み上げてください</h2>
+  </div>
+  <div class="status-bar" id="buzz-status">準備完了 — 答えが分かったら押せ！</div>
+  <div class="buzz-wrap">
+    <button class="buzz-btn ready" id="buzz-btn" onclick="pressBuzz()">
+      <span class="icon">🔔</span>
+      <span>押す！</span>
+    </button>
+  </div>
+  <div class="rank-list" id="buzz-ranks"></div>
+  <div id="host-controls" style="display:none;width:100%;display:none;flex-direction:column;gap:8px">
+    <div class="divider"></div>
+    <p class="sub">ホストコントロール</p>
+    <button class="btn btn-primary" onclick="nextRound()">次の問題へ →</button>
+    <button class="btn btn-danger" onclick="endGame()">ゲームを終了する</button>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<!-- 結果 -->
+<div id="s-result" class="screen">
+  <div style="margin-top:1.5rem;text-align:center">
+    <div class="result-medal">🏆</div>
+    <h2 style="margin-top:8px">ゲーム終了！</h2>
+  </div>
+  <div class="rank-list" id="result-list"></div>
+  <button class="btn btn-primary" onclick="backHome()" style="margin-top:0.5rem">もう一度遊ぶ</button>
+  <div class="spacer"></div>
+</div>
+
+<script>
+let state = {
+  role: null, name: '', roomCode: '',
+  peer: null, hostConn: null, guestConns: {},
+  players: {}, buzzOrder: [], round: 0,
+  buzzOpen: false, myId: ''
+};
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function showError(msg){
+  const el = document.getElementById('home-error');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+function switchTab(t){
+  document.getElementById('tab-host-btn').classList.toggle('active', t === 'host');
+  document.getElementById('tab-join-btn').classList.toggle('active', t === 'join');
+  document.getElementById('tab-host').style.display = t === 'host' ? 'flex' : 'none';
+  document.getElementById('tab-join').style.display = t === 'join' ? 'flex' : 'none';
+}
+
+function genCode(){ return Math.floor(1000 + Math.random() * 9000).toString(); }
+
+function createPeerHost(name, code, attempt){
+  if(attempt > 5){ showError('ルーム作成に失敗しました。再度お試しください。'); return; }
+  const peerId = 'hayaoshi-room-' + code;
+  const peer = new Peer(peerId, { debug: 0 });
+  state.peer = peer;
+  peer.on('open', id => {
+    state.myId = id;
+    state.roomCode = code;
+    state.players[id] = { name, score: 0 };
+    setupLobby();
+    showScreen('lobby');
+  });
+  peer.on('error', e => {
+    if(e.type === 'unavailable-id'){
+      peer.destroy();
+      createPeerHost(name, genCode(), attempt + 1);
+    } else {
+      showError('接続エラー: ' + e.type);
+    }
+  });
+  peer.on('connection', conn => {
+    conn.on('open', () => {
+      if(Object.keys(state.players).length >= 8){
+        conn.send({ type: 'error', msg: '満員です（最大8人）' });
+        conn.close(); return;
+      }
+      state.guestConns[conn.peer] = conn;
+      conn.on('data', d => handleHostData(conn.peer, d));
+      conn.on('close', () => {
+        delete state.guestConns[conn.peer];
+        delete state.players[conn.peer];
+        broadcastState();
+        if(document.getElementById('s-lobby').classList.contains('active')) renderLobby();
+      });
+    });
+  });
+}
+
+function hostGame(){
+  const name = document.getElementById('host-name').value.trim();
+  if(!name){ showError('名前を入力してください'); return; }
+  state.role = 'host'; state.name = name;
+  createPeerHost(name, genCode(), 0);
+}
+
+function joinGame(){
+  const name = document.getElementById('join-name').value.trim();
+  const code = document.getElementById('join-code').value.trim();
+  if(!name){ showError('名前を入力してください'); return; }
+  if(code.length !== 4 || !/^\d{4}$/.test(code)){ showError('4桁の数字を入力してください'); return; }
+  state.role = 'guest'; state.name = name; state.roomCode = code;
+  state.peer = new Peer({ debug: 0 });
+  state.peer.on('open', id => {
+    state.myId = id;
+    const conn = state.peer.connect('hayaoshi-room-' + code, { reliable: true });
+    state.hostConn = conn;
+    conn.on('open', () => conn.send({ type: 'join', name }));
+    conn.on('data', d => handleGuestData(d));
+    conn.on('error', () => showError('接続に失敗しました'));
+    conn.on('close', () => {
+      if(!document.getElementById('s-result').classList.contains('active')){
+        alert('ホストとの接続が切れました');
+        backHome();
+      }
+    });
+  });
+  state.peer.on('error', e => {
+    if(e.type === 'peer-unavailable') showError('ルームが見つかりません（コードを確認してください）');
+    else showError('エラー: ' + e.type);
+  });
+}
+
+function setupLobby(){
+  document.getElementById('lobby-code').textContent = state.roomCode;
+  const url = location.origin + location.pathname + '?room=' + state.roomCode;
+  document.getElementById('share-url').textContent = url;
+  renderLobby();
+}
+
+function copyShare(){
+  const url = location.origin + location.pathname + '?room=' + state.roomCode;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ コピー済み';
+    setTimeout(() => btn.textContent = 'コピー', 2000);
+  });
+}
+
+function renderLobby(){
+  const grid = document.getElementById('lobby-players');
+  grid.innerHTML = '';
+  const ids = Object.keys(state.players);
+  for(let i = 0; i < 8; i++){
+    const slot = document.createElement('div');
+    slot.className = 'player-slot' + (i < ids.length ? ' joined' : '');
+    if(i < ids.length){
+      const isMe = ids[i] === state.myId;
+      slot.innerHTML = `<span class="dot"></span><span>${state.players[ids[i]].name}${isMe ? ' <span style="font-size:11px;color:var(--purple)">(あなた)</span>' : ''}</span>`;
+    } else {
+      slot.innerHTML = `<span class="dot"></span><span>空き</span>`;
+    }
+    grid.appendChild(slot);
+  }
+  const n = ids.length;
+  document.getElementById('lobby-status').textContent = `${n} / 8人 参加中`;
+  const startBtn = document.getElementById('start-btn');
+  if(state.role === 'host'){
+    startBtn.style.display = n >= 2 ? 'block' : 'none';
+  } else {
+    startBtn.style.display = 'none';
+  }
+}
+
+function broadcastState(){
+  const msg = { type: 'state', players: state.players, buzzOrder: state.buzzOrder, buzzOpen: state.buzzOpen, round: state.round };
+  Object.values(state.guestConns).forEach(c => { try{ c.send(msg); } catch(e){} });
+  if(state.role === 'host') applyBuzzScreen(msg);
+}
+
+function handleHostData(fromId, d){
+  if(d.type === 'join'){
+    state.players[fromId] = { name: d.name, score: 0 };
+    broadcastState();
+    if(document.getElementById('s-lobby').classList.contains('active')) renderLobby();
+  } else if(d.type === 'buzz'){
+    if(state.buzzOpen && !state.buzzOrder.find(b => b.id === fromId)){
+      state.buzzOrder.push({ id: fromId, time: d.time });
+      state.buzzOrder.sort((a, b) => a.time - b.time);
+      broadcastState();
+    }
+  }
+}
+
+function handleGuestData(d){
+  if(d.type === 'error'){ alert(d.msg); state.peer.destroy(); backHome(); return; }
+  if(d.type === 'end'){ showResult(); return; }
+  if(d.type === 'state'){
+    state.players = d.players;
+    state.buzzOrder = d.buzzOrder;
+    state.buzzOpen = d.buzzOpen;
+    state.round = d.round;
+    if(d.round > 0){
+      if(!document.getElementById('s-buzz').classList.contains('active')) showScreen('buzz');
+      applyBuzzScreen(d);
+    } else {
+      if(!document.getElementById('s-lobby').classList.contains('active')) showScreen('lobby');
+      renderLobby();
+    }
+  }
+}
+
+function applyBuzzScreen(d){
+  document.getElementById('round-label').textContent = `第 ${d.round} 問`;
+  const btn = document.getElementById('buzz-btn');
+  const myBuzzed = d.buzzOrder.find(b => b.id === state.myId);
+
+  if(d.buzzOrder.length > 0){
+    const winner = d.buzzOrder[0];
+    const wname = state.players[winner.id]?.name || '?';
+    document.getElementById('buzz-status').textContent = `🏆 ${wname} が1番！`;
+    if(winner.id === state.myId){
+      btn.className = 'buzz-btn winner';
+      btn.innerHTML = '<span class="icon">⭐</span><span>1番！！</span>';
+    } else if(myBuzzed){
+      const rank = d.buzzOrder.findIndex(b => b.id === state.myId) + 1;
+      btn.className = 'buzz-btn locked';
+      btn.innerHTML = `<span class="icon" style="font-size:36px">${rank}位</span><span>押せた！</span>`;
+    } else {
+      btn.className = 'buzz-btn locked';
+      btn.innerHTML = '<span class="icon" style="font-size:36px">🔒</span><span>遅かった</span>';
+    }
+  } else if(d.buzzOpen){
+    document.getElementById('buzz-status').textContent = '準備完了 — 答えが分かったら押せ！';
+    btn.className = 'buzz-btn ready';
+    btn.innerHTML = '<span class="icon">🔔</span><span>押す！</span>';
+  } else {
+    document.getElementById('buzz-status').textContent = '問題を読み上げています...';
+    btn.className = 'buzz-btn locked';
+    btn.innerHTML = '<span class="icon" style="font-size:36px">⏳</span><span>待機中</span>';
+  }
+
+  renderBuzzRanks(d.buzzOrder);
+
+  if(state.role === 'host'){
+    document.getElementById('host-controls').style.display = 'flex';
+  }
+}
+
+function renderBuzzRanks(order){
+  const el = document.getElementById('buzz-ranks');
+  el.innerHTML = '';
+  if(order.length === 0) return;
+  order.slice(0, 8).forEach((b, i) => {
+    const name = state.players[b.id]?.name || '?';
+    const isMe = b.id === state.myId;
+    const medals = ['🥇','🥈','🥉'];
+    const item = document.createElement('div');
+    item.className = 'rank-item';
+    item.innerHTML = `
+      <span class="rank-num${i === 0 ? ' gold' : ''}">${medals[i] || (i+1)}</span>
+      <span class="rank-name">${name}</span>
+      ${isMe ? '<span class="rank-you">あなた</span>' : ''}
+    `;
+    el.appendChild(item);
+  });
+}
+
+function startGame(){
+  state.round = 1; state.buzzOpen = true; state.buzzOrder = [];
+  broadcastState();
+  showScreen('buzz');
+}
+
+function pressBuzz(){
+  const btn = document.getElementById('buzz-btn');
+  if(!btn.classList.contains('ready')) return;
+  const t = Date.now();
+  if(state.role === 'host'){
+    if(state.buzzOpen && !state.buzzOrder.find(b => b.id === state.myId)){
+      state.buzzOrder.push({ id: state.myId, time: t });
+      broadcastState();
+    }
+  } else {
+    state.hostConn.send({ type: 'buzz', time: t });
+    btn.className = 'buzz-btn locked';
+    btn.innerHTML = '<span class="icon" style="font-size:36px">⏳</span><span>待機中...</span>';
+  }
+}
+
+function nextRound(){
+  state.round++;
+  state.buzzOpen = true;
+  state.buzzOrder = [];
+  broadcastState();
+}
+
+function endGame(){
+  const msg = { type: 'end' };
+  Object.values(state.guestConns).forEach(c => { try{ c.send(msg); } catch(e){} });
+  showResult();
+}
+
+function showResult(){
+  const sorted = Object.entries(state.players).sort((a, b) => b[1].score - a[1].score);
+  const list = document.getElementById('result-list');
+  list.innerHTML = '';
+  const medals = ['🥇','🥈','🥉'];
+  sorted.forEach(([id, p], i) => {
+    const isMe = id === state.myId;
+    const item = document.createElement('div');
+    item.className = 'rank-item';
+    item.innerHTML = `
+      <span class="rank-num${i === 0 ? ' gold' : ''}">${medals[i] || (i+1)}</span>
+      <span class="rank-name">${p.name}</span>
+      ${isMe ? '<span class="rank-you">あなた</span>' : ''}
+    `;
+    list.appendChild(item);
+  });
+  showScreen('result');
+}
+
+function leaveGame(){
+  if(state.peer) state.peer.destroy();
+  backHome();
+}
+
+function backHome(){
+  if(state.peer) state.peer.destroy();
+  state = { role:null, name:'', roomCode:'', peer:null, hostConn:null, guestConns:{}, players:{}, buzzOrder:[], round:0, buzzOpen:false, myId:'' };
+  showScreen('home');
+}
+
+// URLパラメータでルームコード自動入力
+const urlParams = new URLSearchParams(location.search);
+const roomFromUrl = urlParams.get('room');
+if(roomFromUrl && /^\d{4}$/.test(roomFromUrl)){
+  switchTab('join');
+  document.getElementById('join-code').value = roomFromUrl;
+}
+</script>
+</body>
+</html>
