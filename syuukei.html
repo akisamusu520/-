@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クイズ スコアボード</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222635;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #f0f2ff;
+    --text2: #8b90aa;
+    --text3: #555a70;
+    --green: #3ecf8e;
+    --green-dim: rgba(62,207,142,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --gold: #f5c542;
+    --gold-dim: rgba(245,197,66,0.12);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    min-height: 100vh;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  header {
+    max-width: 860px;
+    margin: 0 auto 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--gold-dim);
+    border: 1px solid rgba(245,197,66,0.3);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  h1 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .count-pill {
+    font-size: 12px;
+    color: var(--text2);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+  }
+
+  button {
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border2);
+    padding: 7px 14px;
+    transition: background 0.12s, transform 0.08s;
+  }
+
+  button:active { transform: scale(0.96); }
+
+  .btn-add {
+    background: var(--green);
+    color: #0a1a12;
+    border-color: var(--green);
+    font-weight: 600;
+  }
+
+  .btn-add:hover { background: #52dea0; }
+  .btn-add:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  .btn-reset {
+    background: transparent;
+    color: var(--red);
+    border-color: rgba(248,113,113,0.3);
+  }
+
+  .btn-reset:hover { background: var(--red-dim); }
+
+  .grid {
+    max-width: 860px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+  }
+
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--text3);
+  }
+
+  .empty-state .emoji { font-size: 36px; display: block; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .card.leader {
+    border-color: rgba(245,197,66,0.4);
+    background: linear-gradient(160deg, #1e1d14 0%, var(--surface) 60%);
+  }
+
+  .leader-badge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold);
+    color: #1a1400;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .team-name {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    padding: 2px 0;
+    width: 100%;
+    transition: border-color 0.15s, color 0.15s;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .team-name:focus {
+    outline: none;
+    border-bottom-color: var(--border2);
+    color: var(--text);
+  }
+
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--text3);
+    padding: 3px;
+    font-size: 14px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .remove-btn:hover { color: var(--red); background: var(--red-dim); border-color: transparent; }
+
+  .score-area {
+    text-align: center;
+    padding: 6px 0 2px;
+  }
+
+  .score-num {
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    transition: color 0.15s;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .score-num.negative { color: var(--red); }
+  .score-num.positive { color: var(--green); }
+
+  .btn-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .score-btn {
+    flex: 1;
+    padding: 9px 0;
+    font-size: 17px;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    line-height: 1;
+  }
+
+  .btn-minus {
+    background: var(--red-dim);
+    color: var(--red);
+    border-color: rgba(248,113,113,0.2);
+  }
+
+  .btn-minus:hover { background: rgba(248,113,113,0.2); }
+
+  .btn-plus {
+    background: var(--green-dim);
+    color: var(--green);
+    border-color: rgba(62,207,142,0.2);
+  }
+
+  .btn-plus:hover { background: rgba(62,207,142,0.2); }
+
+  .history-row {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    min-height: 16px;
+  }
+
+  .hist-chip {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .hist-plus { background: var(--green-dim); color: var(--green); }
+  .hist-minus { background: var(--red-dim); color: var(--red); }
+
+  @media (max-width: 420px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .score-num { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🏆</div>
+    <div>
+      <h1>クイズ スコアボード</h1>
+      <p class="subtitle">最大10チーム対応</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="count-pill" id="count-label">0 / 10</span>
+    <button class="btn-add" id="add-btn" onclick="addTeam()">＋ チーム追加</button>
+    <button class="btn-reset" onclick="resetAll()">リセット</button>
+  </div>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<script>
+  let teams = [];
+  let nextId = 1;
+
+  function addTeam() {
+    if (teams.length >= 10) return;
+    teams.push({ id: nextId++, name: 'チーム ' + (teams.length + 1), score: 0, history: [] });
+    render();
+  }
+
+  function removeTeam(id) {
+    teams = teams.filter(t => t.id !== id);
+    render();
+  }
+
+  function changeScore(id, delta) {
+    const t = teams.find(t => t.id === id);
+    if (!t) return;
+    t.score += delta;
+    t.history.push(delta > 0 ? '+1' : '-1');
+    if (t.history.length > 6) t.history.shift();
+    render();
+  }
+
+  function renameTeam(id, name) {
+    const t = teams.find(t => t.id === id);
+    if (t && name.trim()) t.name = name.trim();
+  }
+
+  function resetAll() {
+    if (teams.length === 0) return;
+    if (confirm('全チームのスコアをリセットしますか？')) {
+      teams.forEach(t => { t.score = 0; t.history = []; });
+      render();
+    }
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function render() {
+    const grid = document.getElementById('grid');
+    const addBtn = document.getElementById('add-btn');
+    const countLabel = document.getElementById('count-label');
+
+    countLabel.textContent = teams.length + ' / 10';
+    addBtn.disabled = teams.length >= 10;
+
+    if (teams.length === 0) {
+      grid.innerHTML = `<div class="empty-state">
+        <span class="emoji">🎯</span>
+        <p>「チーム追加」でチームを作ろう</p>
+      </div>`;
+      return;
+    }
+
+    const maxScore = Math.max(...teams.map(t => t.score));
+    const isLeader = t => teams.length > 1 && t.score === maxScore && maxScore > 0;
+
+    grid.innerHTML = teams.map(t => {
+      const leader = isLeader(t);
+      const scoreClass = t.score > 0 ? 'positive' : t.score < 0 ? 'negative' : '';
+      const histHTML = t.history.map(h =>
+        `<span class="hist-chip ${h === '+1' ? 'hist-plus' : 'hist-minus'}">${h}</span>`
+      ).join('');
+
+      return `<div class="card${leader ? ' leader' : ''}">
+        ${leader ? '<div class="leader-badge">👑 トップ</div>' : ''}
+        <div class="card-header">
+          <input class="team-name" type="text" value="${esc(t.name)}" maxlength="10"
+            onblur="renameTeam(${t.id}, this.value)"
+            onkeydown="if(event.key==='Enter')this.blur()" />
+          <button class="remove-btn" onclick="removeTeam(${t.id})" title="削除">✕</button>
+        </div>
+        <div class="score-area">
+          <div class="score-num ${scoreClass}">${t.score}</div>
+        </div>
+        <div class="btn-row">
+          <button class="score-btn btn-minus" onclick="changeScore(${t.id}, -1)">−1</button>
+          <button class="score-btn btn-plus" onclick="changeScore(${t.id}, 1)">＋1</button>
+        </div>
+        <div class="history-row">${histHTML}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // 初期チーム4つ
+  for (let i = 0; i < 4; i++) addTeam();
+</script>
+</body>
+</html>
