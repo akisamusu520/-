@@ -305,7 +305,9 @@ function renderLobby(){
 function broadcastState(){
   const msg = { type: 'state', players: state.players, buzzOrder: state.buzzOrder, buzzOpen: state.buzzOpen, round: state.round };
   Object.values(state.guestConns).forEach(c => { try{ c.send(msg); } catch(e){} });
-  if(state.role === 'host') applyHostScreen(msg);
+  if(state.role === 'host' && document.getElementById('s-host').classList.contains('active')){
+    applyHostScreen(msg);
+  }
 }
 
 function handleHostData(fromId, d){
@@ -414,11 +416,8 @@ function applyGuestBuzzScreen(d){
 
 function startGame(){
   state.round = 1; state.buzzOpen = true; state.buzzOrder = [];
+  showScreen('host');
   broadcastState();
-  showScreen('s-host');
-  // ホスト画面へ
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-host').classList.add('active');
   applyHostScreen({ round: state.round, buzzOrder: state.buzzOrder, buzzOpen: state.buzzOpen, players: state.players });
 }
 
