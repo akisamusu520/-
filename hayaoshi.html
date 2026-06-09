@@ -126,11 +126,10 @@
     <div class="rank-list" id="host-buzz-ranks"></div>
     <p id="host-no-buzz" style="text-align:center;color:var(--sub);font-size:14px;padding:1rem 0">まだ誰も押していません</p>
   </div>
-  <div style="width:100%;display:flex;flex-direction:column;gap:8px">
+  <div style="width:100%;display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:1rem">
     <button class="btn btn-primary" onclick="nextRound()">次の問題へ →</button>
     <button class="btn btn-danger" onclick="endGame()">ゲームを終了する</button>
   </div>
-  <div class="spacer"></div>
 </div>
 
 <div id="s-result" class="screen">
@@ -138,6 +137,10 @@
     <div style="font-size:48px">🏆</div>
     <h2 style="margin-top:8px">ゲーム終了！</h2>
     <p class="sub" style="margin-top:8px">お疲れさまでした</p>
+  </div>
+  <div class="card" id="result-last-buzz" style="display:none;width:100%">
+    <p style="font-size:13px;font-weight:600;color:var(--sub);margin-bottom:10px;text-align:center">最後の問題の押した順番</p>
+    <div class="rank-list" id="result-list"></div>
   </div>
   <button class="btn btn-primary" onclick="backHome()" style="margin-top:1rem">もう一度遊ぶ</button>
   <div class="spacer"></div>
@@ -341,16 +344,15 @@ function renderGuestBuzzScreen(){
   if(state.buzzOrder.length>0){
     const wname = state.players[state.buzzOrder[0].id]?.name||'?';
     document.getElementById('buzz-status').textContent=`🏆 ${wname} が1番！`;
-    if(state.buzzOrder[0].id===state.myId){
-      btn.className='buzz-btn winner';
-      btn.innerHTML='<span class="icon">⭐</span><span>1番！！</span>';
-    } else if(myBuzzed){
+    if(myBuzzed){
       const rank = state.buzzOrder.findIndex(b=>b.id===state.myId)+1;
-      btn.className='buzz-btn locked';
-      btn.innerHTML=`<span class="icon" style="font-size:36px">${rank}位</span><span>押せた！</span>`;
+      const medals=['⭐','2位','3位','4位','5位','6位','7位','8位','9位','10位'];
+      btn.className= rank===1 ? 'buzz-btn winner' : 'buzz-btn locked';
+      btn.innerHTML=`<span class="icon" style="font-size:36px">${medals[rank-1]||rank+'位'}</span><span>${rank===1?'1番！！':'押せた！'}</span>`;
     } else {
-      btn.className='buzz-btn locked';
-      btn.innerHTML='<span class="icon" style="font-size:36px">🔒</span><span>遅かった</span>';
+      // まだ押してない人は引き続き押せる
+      btn.className='buzz-btn ready';
+      btn.innerHTML='<span class="icon">🔔</span><span>押す！</span>';
     }
   } else {
     document.getElementById('buzz-status').textContent='答えが分かったら押せ！';
@@ -381,10 +383,6 @@ function startGame(){
 function pressBuzz(){
   if(!document.getElementById('buzz-btn').classList.contains('ready')) return;
   state.hostConn.send({type:'buzz', time:Date.now()});
-  // ボタンを即座にロック（連打防止）
-  const btn = document.getElementById('buzz-btn');
-  btn.className='buzz-btn locked';
-  btn.innerHTML='<span class="icon" style="font-size:36px">⏳</span><span>待機中...</span>';
 }
 
 function nextRound(){
@@ -399,17 +397,23 @@ function endGame(){
 }
 
 function showResult(){
-  const sorted = Object.entries(state.players);
   const list = document.getElementById('result-list');
   list.innerHTML='';
-  const medals=['🥇','🥈','🥉'];
-  sorted.forEach(([id,p],i)=>{
-    const isMe = id===state.myId;
-    const el = document.createElement('div');
-    el.className='rank-item';
-    el.innerHTML=`<span class="rank-num${i===0?' gold':''}">${medals[i]||(i+1)}</span><span class="rank-name">${p.name}</span>${isMe?'<span class="rank-you">あなた</span>':''}`;
-    list.appendChild(el);
-  });
+  const lastBuzzBox = document.getElementById('result-last-buzz');
+  if(state.buzzOrder.length > 0){
+    lastBuzzBox.style.display='block';
+    const medals=['🥇','🥈','🥉'];
+    state.buzzOrder.forEach((b,i)=>{
+      const name = state.players[b.id]?.name||'?';
+      const isMe = b.id===state.myId;
+      const el = document.createElement('div');
+      el.className='rank-item';
+      el.innerHTML=`<span class="rank-num${i===0?' gold':''}">${medals[i]||(i+1)}</span><span class="rank-name">${name}</span>${isMe?'<span class="rank-you">あなた</span>':''}`;
+      list.appendChild(el);
+    });
+  } else {
+    lastBuzzBox.style.display='none';
+  }
   showScreen('result');
 }
 
