@@ -15,20 +15,15 @@
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;align-items:center}
   .screen{display:none;flex-direction:column;align-items:center;gap:1rem;width:100%;max-width:420px;padding:1.5rem 1rem;min-height:100dvh}
   .screen.active{display:flex}
-
   h1{font-size:26px;font-weight:700;letter-spacing:-0.5px}
   h2{font-size:20px;font-weight:600}
   .sub{font-size:14px;color:var(--sub);text-align:center;line-height:1.5}
-
   .card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:1.25rem;width:100%}
-
   .tabs{display:flex;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);padding:4px;width:100%;gap:4px}
   .tab{flex:1;padding:10px;border-radius:8px;border:none;background:transparent;font-size:15px;font-weight:500;cursor:pointer;color:var(--sub);transition:all 0.15s}
   .tab.active{background:var(--purple);color:#fff}
-
   input[type=text]{width:100%;padding:13px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:16px;background:var(--card);color:var(--text);outline:none;transition:border-color 0.15s}
   input[type=text]:focus{border-color:var(--purple)}
-
   .btn{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.15s;letter-spacing:0.2px}
   .btn:active{transform:scale(0.98)}
   .btn-primary{background:var(--purple);color:#fff}
@@ -37,23 +32,17 @@
   .btn-secondary:hover{background:var(--bg)}
   .btn-danger{background:#e74c3c;color:#fff}
   .btn-danger:hover{background:#c0392b}
-  .btn-success{background:var(--green);color:#fff}
-
   .room-code{font-size:42px;font-weight:800;letter-spacing:10px;color:var(--purple);text-align:center;padding:1rem 0}
-
   .players-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
   .player-slot{background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);padding:11px 13px;font-size:13px;color:var(--sub);display:flex;align-items:center;gap:8px;min-height:46px}
   .player-slot.joined{background:var(--card);border-color:var(--purple);color:var(--text)}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0}
   .player-slot.joined .dot{background:var(--green)}
-
   .status-bar{background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);padding:10px 16px;font-size:13px;color:var(--sub);text-align:center;width:100%}
-
   .share-row{display:flex;gap:8px;align-items:center;width:100%}
   .share-url{flex:1;font-size:12px;color:var(--sub);word-break:break-all;line-height:1.4}
   .copy-btn{flex-shrink:0;padding:8px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--text)}
   .copy-btn:active{background:var(--bg)}
-
   /* buzz button */
   .buzz-wrap{width:100%;display:flex;justify-content:center;padding:0.5rem 0}
   .buzz-btn{width:240px;height:240px;border-radius:50%;border:none;cursor:pointer;font-size:22px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:transform 0.1s,box-shadow 0.1s;user-select:none;-webkit-user-select:none;box-shadow:0 6px 24px rgba(90,79,216,0.25)}
@@ -63,23 +52,17 @@
   .buzz-btn.winner{background:var(--green);color:#fff;animation:pop 0.35s ease;box-shadow:0 6px 24px rgba(39,174,96,0.35)}
   .buzz-btn.locked{background:var(--bg);color:var(--sub);box-shadow:none;cursor:not-allowed;border:1px solid var(--border)}
   @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
-
-  .round-label{font-size:13px;font-weight:600;color:var(--purple);letter-spacing:1px;text-transform:uppercase}
-
+  .round-label{font-size:13px;font-weight:600;color:var(--purple);letter-spacing:1px}
   .rank-list{width:100%;display:flex;flex-direction:column;gap:6px}
   .rank-item{background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--border);padding:11px 14px;display:flex;align-items:center;gap:10px}
   .rank-num{font-size:18px;font-weight:700;width:28px;text-align:center;color:var(--sub)}
   .rank-num.gold{color:#d4a017}
   .rank-name{flex:1;font-size:15px;font-weight:500}
-  .rank-time{font-size:12px;color:var(--sub)}
   .rank-you{font-size:11px;background:#f0eeff;color:var(--purple);padding:2px 8px;border-radius:20px;font-weight:600}
-
-  .result-medal{font-size:48px;text-align:center}
-  .winner-name{font-size:24px;font-weight:700;text-align:center}
-
+  .host-rank-view{width:100%;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:1rem}
+  .host-rank-title{font-size:13px;font-weight:600;color:var(--sub);margin-bottom:10px;text-align:center}
   .divider{width:100%;height:1px;background:var(--border)}
   .spacer{flex:1}
-
   @media(max-width:380px){
     .buzz-btn{width:200px;height:200px}
     .buzz-btn .icon{font-size:44px}
@@ -93,15 +76,14 @@
   <div style="margin-top:2rem;text-align:center">
     <div style="font-size:52px">🎯</div>
     <h1 style="margin-top:8px">早押しクイズ</h1>
-    <p class="sub" style="margin-top:6px">最大8人でリアルタイム対戦</p>
+    <p class="sub" style="margin-top:6px">最大10人でリアルタイム対戦</p>
   </div>
   <div class="tabs" style="margin-top:0.5rem">
     <button class="tab active" id="tab-host-btn" onclick="switchTab('host')">ホスト</button>
     <button class="tab" id="tab-join-btn" onclick="switchTab('join')">参加</button>
   </div>
-
   <div id="tab-host" style="width:100%;display:flex;flex-direction:column;gap:10px">
-    <input type="text" id="host-name" placeholder="あなたの名前" maxlength="12" />
+    <input type="text" id="host-name" placeholder="あなたの名前（省略可）" maxlength="12" />
     <button class="btn btn-primary" onclick="hostGame()">ルームを作成する</button>
   </div>
   <div id="tab-join" style="width:100%;display:none;flex-direction:column;gap:10px">
@@ -132,11 +114,10 @@
   <div class="spacer"></div>
 </div>
 
-<!-- 早押し -->
+<!-- 早押し画面（参加者） -->
 <div id="s-buzz" class="screen">
   <div style="margin-top:0.5rem;text-align:center;width:100%">
     <div class="round-label" id="round-label">第1問</div>
-    <h2 style="margin-top:4px" id="buzz-question">問題を読み上げてください</h2>
   </div>
   <div class="status-bar" id="buzz-status">準備完了 — 答えが分かったら押せ！</div>
   <div class="buzz-wrap">
@@ -146,9 +127,22 @@
     </button>
   </div>
   <div class="rank-list" id="buzz-ranks"></div>
-  <div id="host-controls" style="display:none;width:100%;display:none;flex-direction:column;gap:8px">
-    <div class="divider"></div>
-    <p class="sub">ホストコントロール</p>
+  <div class="spacer"></div>
+</div>
+
+<!-- ホスト用画面 -->
+<div id="s-host" class="screen">
+  <div style="margin-top:0.5rem;text-align:center;width:100%">
+    <div class="round-label" id="host-round-label">第1問</div>
+    <h2 style="margin-top:4px">ホスト管理画面</h2>
+  </div>
+  <div class="status-bar" id="host-status">早押し受付中...</div>
+  <div class="host-rank-view">
+    <div class="host-rank-title">押した順番</div>
+    <div class="rank-list" id="host-buzz-ranks"></div>
+    <p id="host-no-buzz" style="text-align:center;color:var(--sub);font-size:14px;padding:1rem 0">まだ誰も押していません</p>
+  </div>
+  <div style="width:100%;display:flex;flex-direction:column;gap:8px">
     <button class="btn btn-primary" onclick="nextRound()">次の問題へ →</button>
     <button class="btn btn-danger" onclick="endGame()">ゲームを終了する</button>
   </div>
@@ -158,7 +152,7 @@
 <!-- 結果 -->
 <div id="s-result" class="screen">
   <div style="margin-top:1.5rem;text-align:center">
-    <div class="result-medal">🏆</div>
+    <div style="font-size:48px">🏆</div>
     <h2 style="margin-top:8px">ゲーム終了！</h2>
   </div>
   <div class="rank-list" id="result-list"></div>
@@ -167,6 +161,7 @@
 </div>
 
 <script>
+const MAX_PLAYERS = 10;
 let state = {
   role: null, name: '', roomCode: '',
   peer: null, hostConn: null, guestConns: {},
@@ -203,7 +198,7 @@ function createPeerHost(name, code, attempt){
   peer.on('open', id => {
     state.myId = id;
     state.roomCode = code;
-    state.players[id] = { name, score: 0 };
+    // ホストは players に登録しない（参加者のみカウント）
     setupLobby();
     showScreen('lobby');
   });
@@ -217,8 +212,8 @@ function createPeerHost(name, code, attempt){
   });
   peer.on('connection', conn => {
     conn.on('open', () => {
-      if(Object.keys(state.players).length >= 8){
-        conn.send({ type: 'error', msg: '満員です（最大8人）' });
+      if(Object.keys(state.players).length >= MAX_PLAYERS){
+        conn.send({ type: 'error', msg: `満員です（最大${MAX_PLAYERS}人）` });
         conn.close(); return;
       }
       state.guestConns[conn.peer] = conn;
@@ -234,8 +229,7 @@ function createPeerHost(name, code, attempt){
 }
 
 function hostGame(){
-  const name = document.getElementById('host-name').value.trim();
-  if(!name){ showError('名前を入力してください'); return; }
+  const name = document.getElementById('host-name').value.trim() || 'ホスト';
   state.role = 'host'; state.name = name;
   createPeerHost(name, genCode(), 0);
 }
@@ -287,7 +281,7 @@ function renderLobby(){
   const grid = document.getElementById('lobby-players');
   grid.innerHTML = '';
   const ids = Object.keys(state.players);
-  for(let i = 0; i < 8; i++){
+  for(let i = 0; i < MAX_PLAYERS; i++){
     const slot = document.createElement('div');
     slot.className = 'player-slot' + (i < ids.length ? ' joined' : '');
     if(i < ids.length){
@@ -299,10 +293,10 @@ function renderLobby(){
     grid.appendChild(slot);
   }
   const n = ids.length;
-  document.getElementById('lobby-status').textContent = `${n} / 8人 参加中`;
+  document.getElementById('lobby-status').textContent = `${n} / ${MAX_PLAYERS}人 参加中`;
   const startBtn = document.getElementById('start-btn');
   if(state.role === 'host'){
-    startBtn.style.display = n >= 2 ? 'block' : 'none';
+    startBtn.style.display = n >= 1 ? 'block' : 'none';
   } else {
     startBtn.style.display = 'none';
   }
@@ -311,7 +305,7 @@ function renderLobby(){
 function broadcastState(){
   const msg = { type: 'state', players: state.players, buzzOrder: state.buzzOrder, buzzOpen: state.buzzOpen, round: state.round };
   Object.values(state.guestConns).forEach(c => { try{ c.send(msg); } catch(e){} });
-  if(state.role === 'host') applyBuzzScreen(msg);
+  if(state.role === 'host') applyHostScreen(msg);
 }
 
 function handleHostData(fromId, d){
@@ -338,7 +332,7 @@ function handleGuestData(d){
     state.round = d.round;
     if(d.round > 0){
       if(!document.getElementById('s-buzz').classList.contains('active')) showScreen('buzz');
-      applyBuzzScreen(d);
+      applyGuestBuzzScreen(d);
     } else {
       if(!document.getElementById('s-lobby').classList.contains('active')) showScreen('lobby');
       renderLobby();
@@ -346,7 +340,33 @@ function handleGuestData(d){
   }
 }
 
-function applyBuzzScreen(d){
+// ホスト用画面の更新（順位表示のみ）
+function applyHostScreen(d){
+  document.getElementById('host-round-label').textContent = `第 ${d.round} 問`;
+  const order = d.buzzOrder;
+  const ranksEl = document.getElementById('host-buzz-ranks');
+  const noBuzzEl = document.getElementById('host-no-buzz');
+  ranksEl.innerHTML = '';
+  if(order.length === 0){
+    noBuzzEl.style.display = 'block';
+    document.getElementById('host-status').textContent = '早押し受付中...';
+  } else {
+    noBuzzEl.style.display = 'none';
+    const wname = state.players[order[0].id]?.name || '?';
+    document.getElementById('host-status').textContent = `🏆 ${wname} が1番！`;
+    const medals = ['🥇','🥈','🥉'];
+    order.forEach((b, i) => {
+      const name = state.players[b.id]?.name || '?';
+      const item = document.createElement('div');
+      item.className = 'rank-item';
+      item.innerHTML = `<span class="rank-num${i===0?' gold':''}">${medals[i]||(i+1)}</span><span class="rank-name">${name}</span>`;
+      ranksEl.appendChild(item);
+    });
+  }
+}
+
+// 参加者用画面の更新
+function applyGuestBuzzScreen(d){
   document.getElementById('round-label').textContent = `第 ${d.round} 問`;
   const btn = document.getElementById('buzz-btn');
   const myBuzzed = d.buzzOrder.find(b => b.id === state.myId);
@@ -376,52 +396,30 @@ function applyBuzzScreen(d){
     btn.innerHTML = '<span class="icon" style="font-size:36px">⏳</span><span>待機中</span>';
   }
 
-  renderBuzzRanks(d.buzzOrder);
-
-  if(state.role === 'host'){
-    document.getElementById('host-controls').style.display = 'flex';
-  }
-}
-
-function renderBuzzRanks(order){
-  const el = document.getElementById('buzz-ranks');
-  el.innerHTML = '';
-  if(order.length === 0) return;
-  order.slice(0, 8).forEach((b, i) => {
-    const name = state.players[b.id]?.name || '?';
-    const isMe = b.id === state.myId;
+  // 参加者画面にも順位表示
+  const ranksEl = document.getElementById('buzz-ranks');
+  ranksEl.innerHTML = '';
+  if(d.buzzOrder.length > 0){
     const medals = ['🥇','🥈','🥉'];
-    const item = document.createElement('div');
-    item.className = 'rank-item';
-    item.innerHTML = `
-      <span class="rank-num${i === 0 ? ' gold' : ''}">${medals[i] || (i+1)}</span>
-      <span class="rank-name">${name}</span>
-      ${isMe ? '<span class="rank-you">あなた</span>' : ''}
-    `;
-    el.appendChild(item);
-  });
+    d.buzzOrder.forEach((b, i) => {
+      const name = state.players[b.id]?.name || '?';
+      const isMe = b.id === state.myId;
+      const item = document.createElement('div');
+      item.className = 'rank-item';
+      item.innerHTML = `<span class="rank-num${i===0?' gold':''}">${medals[i]||(i+1)}</span><span class="rank-name">${name}</span>${isMe?'<span class="rank-you">あなた</span>':''}`;
+      ranksEl.appendChild(item);
+    });
+  }
 }
 
 function startGame(){
   state.round = 1; state.buzzOpen = true; state.buzzOrder = [];
   broadcastState();
-  showScreen('buzz');
-}
-
-function pressBuzz(){
-  const btn = document.getElementById('buzz-btn');
-  if(!btn.classList.contains('ready')) return;
-  const t = Date.now();
-  if(state.role === 'host'){
-    if(state.buzzOpen && !state.buzzOrder.find(b => b.id === state.myId)){
-      state.buzzOrder.push({ id: state.myId, time: t });
-      broadcastState();
-    }
-  } else {
-    state.hostConn.send({ type: 'buzz', time: t });
-    btn.className = 'buzz-btn locked';
-    btn.innerHTML = '<span class="icon" style="font-size:36px">⏳</span><span>待機中...</span>';
-  }
+  showScreen('s-host');
+  // ホスト画面へ
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-host').classList.add('active');
+  applyHostScreen({ round: state.round, buzzOrder: state.buzzOrder, buzzOpen: state.buzzOpen, players: state.players });
 }
 
 function nextRound(){
@@ -429,6 +427,7 @@ function nextRound(){
   state.buzzOpen = true;
   state.buzzOrder = [];
   broadcastState();
+  applyHostScreen({ round: state.round, buzzOrder: state.buzzOrder, buzzOpen: state.buzzOpen, players: state.players });
 }
 
 function endGame(){
@@ -446,11 +445,7 @@ function showResult(){
     const isMe = id === state.myId;
     const item = document.createElement('div');
     item.className = 'rank-item';
-    item.innerHTML = `
-      <span class="rank-num${i === 0 ? ' gold' : ''}">${medals[i] || (i+1)}</span>
-      <span class="rank-name">${p.name}</span>
-      ${isMe ? '<span class="rank-you">あなた</span>' : ''}
-    `;
+    item.innerHTML = `<span class="rank-num${i===0?' gold':''}">${medals[i]||(i+1)}</span><span class="rank-name">${p.name}</span>${isMe?'<span class="rank-you">あなた</span>':''}`;
     list.appendChild(item);
   });
   showScreen('result');
