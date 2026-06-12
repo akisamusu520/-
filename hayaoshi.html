@@ -138,10 +138,7 @@
     <h2 style="margin-top:8px">ゲーム終了！</h2>
     <p class="sub" style="margin-top:8px">お疲れさまでした</p>
   </div>
-  <div class="card" id="result-last-buzz" style="display:none;width:100%">
-    <p style="font-size:13px;font-weight:600;color:var(--sub);margin-bottom:10px;text-align:center">最後の問題の押した順番</p>
-    <div class="rank-list" id="result-list"></div>
-  </div>
+
   <button class="btn btn-primary" onclick="backHome()" style="margin-top:1rem">もう一度遊ぶ</button>
   <div class="spacer"></div>
 </div>
@@ -284,12 +281,10 @@ function handleHostData(fromId, d){
     if(document.getElementById('s-lobby').classList.contains('active')){
       renderLobby();
     }
-    // 参加者にも現在の状態を送る（ゲーム中に途中参加した場合など）
     sendStateToAll();
   } else if(d.type==='buzz'){
     if(state.buzzOpen && !state.buzzOrder.find(b=>b.id===fromId)){
-      state.buzzOrder.push({id:fromId, time:d.time});
-      state.buzzOrder.sort((a,b)=>a.time-b.time);
+      state.buzzOrder.push({id:fromId});
       sendStateToAll();
       renderHostScreen();
     }
@@ -382,7 +377,7 @@ function startGame(){
 
 function pressBuzz(){
   if(!document.getElementById('buzz-btn').classList.contains('ready')) return;
-  state.hostConn.send({type:'buzz', time:Date.now()});
+  state.hostConn.send({type:'buzz'});
 }
 
 function nextRound(){
@@ -397,23 +392,6 @@ function endGame(){
 }
 
 function showResult(){
-  const list = document.getElementById('result-list');
-  list.innerHTML='';
-  const lastBuzzBox = document.getElementById('result-last-buzz');
-  if(state.buzzOrder.length > 0){
-    lastBuzzBox.style.display='block';
-    const medals=['🥇','🥈','🥉'];
-    state.buzzOrder.forEach((b,i)=>{
-      const name = state.players[b.id]?.name||'?';
-      const isMe = b.id===state.myId;
-      const el = document.createElement('div');
-      el.className='rank-item';
-      el.innerHTML=`<span class="rank-num${i===0?' gold':''}">${medals[i]||(i+1)}</span><span class="rank-name">${name}</span>${isMe?'<span class="rank-you">あなた</span>':''}`;
-      list.appendChild(el);
-    });
-  } else {
-    lastBuzzBox.style.display='none';
-  }
   showScreen('result');
 }
 
