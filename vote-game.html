@@ -279,7 +279,7 @@ window.hostOpenRoom=function(){
     conn.on('open',function(){
       const name=(conn.metadata&&conn.metadata.name)?conn.metadata.name:conn.peer;
       hostConns[name]=conn;
-      // send current state
+      // 現在の選択肢数をすぐ送る
       conn.send({type:'init',count:choiceCount});
       updateStats();updateGuestList();
     });
@@ -457,6 +457,10 @@ window.guestJoin=function(){
     guestConn.on('open',function(){
       $('g-connecting').style.display='none';
       $('g-join-btn').disabled=false;
+      // すぐに回答画面へ（initを待たずに）
+      $('g-name-label').textContent=guestName;
+      buildNumGrid(4); // デフォルト。init受信時に上書き
+      show('s-guest-answer');
     });
     guestConn.on('data',handleGuestData);
     guestConn.on('close',function(){toast('ホストとの接続が切れました');});
@@ -493,18 +497,18 @@ function buildNumGrid(count){
 
 function handleGuestData(data){
   if(data.type==='init'){
+    choiceCount=data.count;
     $('g-name-label').textContent=guestName;
     buildNumGrid(data.count);
     show('s-guest-answer');
   } else if(data.type==='count-change'){
+    choiceCount=data.count;
     buildNumGrid(data.count);
     show('s-guest-answer');
-    toast('選択肢が'+data.count+'個に変わりました');
   } else if(data.type==='reset'){
-    buildNumGrid(parseInt($('g-num-grid').children.length)||4);
+    buildNumGrid(choiceCount||4);
     guestSelected=null;
     show('s-guest-answer');
-    toast('次の問題です');
   } else if(data.type==='end'){
     show('s-guest-end');
     if(peer){peer.destroy();peer=null;}
