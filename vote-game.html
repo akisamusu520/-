@@ -263,8 +263,14 @@ window.hostOpenRoom=function(){
   roomCode=randCode();
   hostAnswers={};
   if(peer) peer.destroy();
-  peer=new Peer('vote-'+roomCode,{host:'0.peerjs.com',port:443,path:'/',secure:true,
-    config:{iceServers:[{urls:'stun:stun.l.google.com:19302'}]}});
+  peer=new Peer('vote-'+roomCode,{
+    host:'0.peerjs.com',port:443,path:'/',secure:true,
+    debug:0,
+    config:{iceServers:[
+      {urls:'stun:stun.l.google.com:19302'},
+      {urls:'stun:stun1.l.google.com:19302'}
+    ]}
+  });
   peer.on('open',function(){
     $('run-room-code').textContent=roomCode;
     $('run-count').textContent=choiceCount;
@@ -450,29 +456,57 @@ window.guestJoin=function(){
   $('g-connecting').style.display='block';
   $('g-join-btn').disabled=true;
   if(peer) peer.destroy();
-  peer=new Peer({host:'0.peerjs.com',port:443,path:'/',secure:true,
-    config:{iceServers:[{urls:'stun:stun.l.google.com:19302'}]}});
+
+  peer=new Peer({
+    host:'0.peerjs.com',port:443,path:'/',secure:true,
+    debug:0,
+    config:{iceServers:[
+      {urls:'stun:stun.l.google.com:19302'},
+      {urls:'stun:stun1.l.google.com:19302'}
+    ]}
+  });
+
+  var timeout=setTimeout(function(){
+    $('g-connecting').style.display='none';
+    $('g-join-btn').disabled=false;
+    if(peer){peer.destroy();peer=null;}
+    toast('接続がタイムアウトしました。もう一度お試しください。');
+  },12000);
+
   peer.on('open',function(){
-    guestConn=peer.connect('vote-'+code,{metadata:{name:name},reliable:true});
-    guestConn.on('open',function(){
+    clearTimeout(timeout);
+    guestConn=peer.connect('vote-'+code,{metadata:{name:name},reliable:true,serialization:'json'});
+
+    var connTimeout=setTimeout(function(){
       $('g-connecting').style.display='none';
       $('g-join-btn').disabled=false;
-      // すぐに回答画面へ（initを待たずに）
+      toast('ルームが見つかりません。コードを確認してください');
+    },8000);
+
+    guestConn.on('open',function(){
+      clearTimeout(connTimeout);
+      $('g-connecting').style.display='none';
+      $('g-join-btn').disabled=false;
       $('g-name-label').textContent=guestName;
-      buildNumGrid(4); // デフォルト。init受信時に上書き
+      buildNumGrid(choiceCount||4);
       show('s-guest-answer');
     });
     guestConn.on('data',handleGuestData);
     guestConn.on('close',function(){toast('ホストとの接続が切れました');});
-    guestConn.on('error',function(){
-      $('g-connecting').style.display='none';$('g-join-btn').disabled=false;
+    guestConn.on('error',function(e){
+      clearTimeout(connTimeout);
+      $('g-connecting').style.display='none';
+      $('g-join-btn').disabled=false;
       toast('接続できませんでした');
     });
   });
+
   peer.on('error',function(e){
-    $('g-connecting').style.display='none';$('g-join-btn').disabled=false;
+    clearTimeout(timeout);
+    $('g-connecting').style.display='none';
+    $('g-join-btn').disabled=false;
     if(e.type==='peer-unavailable') toast('ルームが見つかりません。コードを確認してください');
-    else toast('接続エラーが発生しました');
+    else toast('接続エラー: '+e.type);
   });
 };
 
