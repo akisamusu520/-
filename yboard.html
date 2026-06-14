@@ -24,7 +24,7 @@ const db = getDatabase(app);
 const $ = id => document.getElementById(id);
 window.show=function(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
-function randCode(){return String(Math.floor(1000+Math.random()*9000));}
+function randCode(){return String(Math.floor(10+Math.random()*90));}
 
 const COLORS=['#1a7a4a','#2d9e64','#48bb87','#6dcfa6','#94dfc0','#b8edda','#145e38','#0f4a2c','#3aaa72','#5cbf8e'];
 
@@ -279,7 +279,7 @@ window.goGuest=function(){show('s-guest-join');};
 window.guestJoin=async function(){
   const code=$('g-code').value.trim();
   const name=$('g-name').value.trim();
-  if(code.length!==4){$('g-code').focus();return toast('4桁のコードを入力してください');}
+  if(code.length!==2){$('g-code').focus();return toast('2桁のコードを入力してください');}
   if(!name){$('g-name').focus();return toast('名前を入力してください');}
 
   $('g-join-btn').disabled=true;
@@ -512,7 +512,7 @@ input:focus{border-color:var(--accent);background:#fff}
   <div class="card">
     <div class="room-code-box">
       <div class="room-code" id="run-room-code">----</div>
-      <div class="room-code-label">ゲストに教えるコード</div>
+      <div class="room-code-label">ゲストに教えるコード（2桁）</div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
       <span style="font-size:13px;font-weight:600;color:var(--muted)">選択肢の数</span>
@@ -571,7 +571,7 @@ input:focus{border-color:var(--accent);background:#fff}
 <div id="s-guest-join" class="screen">
   <button class="btn btn-back" onclick="show('s-top')">← 戻る</button>
   <div class="card">
-    <input type="text" id="g-code" placeholder="4桁のコード" maxlength="4" inputmode="numeric"
+    <input type="text" id="g-code" placeholder="2桁のコード" maxlength="2" inputmode="numeric"
       style="font-size:28px;font-weight:700;letter-spacing:8px;text-align:center;margin-bottom:.75rem">
     <input type="text" id="g-name" placeholder="名前" maxlength="20">
     <button class="btn btn-primary" style="margin-top:1rem" id="g-join-btn" onclick="guestJoin()">参加する →</button>
