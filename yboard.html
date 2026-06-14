@@ -362,6 +362,14 @@ window.guestJoin=async function(){
     return toast('ルームが見つかりません。コードを確認してください');
   }
 
+  // 同じ名前が既に入室していたらはじく
+  const existingGuests=snap.val().guests||{};
+  if(existingGuests[name]!==undefined){
+    $('g-join-btn').disabled=false;
+    statusEl.style.display='none';
+    return toast('その名前はすでに使われています。別の名前にしてください');
+  }
+
   roomCode=code;
   guestName=name;
   guestSelected=null;
@@ -452,6 +460,80 @@ window.resetAll=function(){
   if(chartInst){chartInst.destroy();chartInst=null;}
   show('s-top');
 };
+
+// PC/スマホレイアウト切り替え
+function applyPCLayout(){
+  if(window.innerWidth < 900) return;
+  const screen = document.getElementById('s-host-run');
+  if(!screen || !screen.classList.contains('active')) return;
+
+  // すでに適用済みならスキップ
+  if(screen.dataset.pcLayout) return;
+  screen.dataset.pcLayout = '1';
+
+  screen.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start';
+
+  // 右カラム用ラッパー作成
+  const right = document.createElement('div');
+  right.id = 'pc-right-col';
+  right.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.75rem';
+
+  const resultArea = document.getElementById('result-area');
+  const scoreArea = resultArea && resultArea.nextElementSibling;
+
+  // result-areaと累計スコアを右カラムへ移動
+  if(resultArea) right.appendChild(resultArea);
+  if(scoreArea && scoreArea.querySelector('#score-ranking')) right.appendChild(scoreArea);
+
+  screen.appendChild(right);
+
+  // コード・統計を大きく
+  const code = document.getElementById('run-room-code');
+  if(code) code.style.fontSize = '72px';
+  document.querySelectorAll('.stat-num').forEach(el=>el.style.fontSize='40px');
+  document.querySelectorAll('.stat-box').forEach(el=>el.style.padding='1.2rem');
+  document.querySelectorAll('.chart-wrap').forEach(el=>el.style.height='280px');
+}
+
+function resetPCLayout(){
+  const screen = document.getElementById('s-host-run');
+  if(!screen || !screen.dataset.pcLayout) return;
+  delete screen.dataset.pcLayout;
+  screen.style.cssText = '';
+
+  const right = document.getElementById('pc-right-col');
+  const card = screen.querySelector('.card');
+  const divider = document.getElementById('divider-before-result');
+
+  if(right && card && divider){
+    // result-areaと累計スコアをcardに戻す
+    const resultArea = document.getElementById('result-area');
+    const scoreArea = right.children[1];
+    if(resultArea) card.insertBefore(resultArea, document.getElementById('guest-list'));
+    if(scoreArea) card.insertBefore(scoreArea, document.getElementById('guest-list'));
+    right.remove();
+  }
+
+  const code = document.getElementById('run-room-code');
+  if(code) code.style.fontSize = '';
+  document.querySelectorAll('.stat-num').forEach(el=>el.style.fontSize='');
+  document.querySelectorAll('.stat-box').forEach(el=>el.style.padding='');
+  document.querySelectorAll('.chart-wrap').forEach(el=>el.style.height='');
+}
+
+// show()をラップしてPC対応
+const _origShow = window.show;
+window.show = function(id){
+  _origShow(id);
+  if(id === 's-host-run') setTimeout(applyPCLayout, 50);
+  else if(id !== 's-host-run') resetPCLayout();
+};
+window.addEventListener('resize', function(){
+  const screen = document.getElementById('s-host-run');
+  if(!screen || !screen.classList.contains('active')) return;
+  if(window.innerWidth >= 900) applyPCLayout();
+  else resetPCLayout();
+});
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -539,7 +621,39 @@ input:focus{border-color:var(--accent);background:#fff}
 .top-role-btn:hover{border-color:var(--accent);background:var(--accent-bg);transform:translateY(-2px);box-shadow:0 8px 24px rgba(26,122,74,.12)}
 .top-role-btn:active{transform:translateY(0)}
 .top-role-icon{font-size:28px;margin-bottom:10px;display:block}
-.top-role-name{font-size:16px;font-weight:700;letter-spacing:.05em;color:var(--text)}</style>
+.top-role-name{font-size:16px;font-weight:700;letter-spacing:.05em;color:var(--text)}
+@media (min-width: 900px) {
+  body{padding:2rem;align-items:flex-start}
+  .app{max-width:100%}
+
+  /* ホスト進行画面：2カラムレイアウト */
+  #s-host-run{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start}
+  #s-host-run .card{margin-bottom:0;grid-column:1/2}
+  #btn-area-run{grid-column:1/2;display:flex !important}
+  #btn-area-next{grid-column:1/2}
+
+  /* 右カラムにresult-areaを移動（CSSで見た目だけ） */
+  #result-area{grid-column:2/3;grid-row:1/10;background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:1.75rem;margin-bottom:0}
+  #result-area.pc-right{display:block !important}
+
+  /* コード・統計を大きく */
+  .room-code{font-size:80px !important}
+  .stat-num{font-size:44px !important}
+  .stat-box{padding:1.2rem !important}
+
+  /* グラフを大きく */
+  .chart-wrap{height:300px !important}
+
+  /* ランキング文字を大きく */
+  .ranking-row{font-size:16px !important;padding:10px 0 !important}
+  .rank-medal{font-size:24px !important}
+  .rank-num{font-size:24px !important}
+
+  /* ボタンを大きく */
+  .btn{font-size:17px !important;padding:14px 22px !important}
+  .btn-primary{padding:16px !important}
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -594,7 +708,7 @@ input:focus{border-color:var(--accent);background:#fff}
       <div class="stat-box"><div class="stat-num" id="st-guests">0</div><div class="stat-label">参加者</div></div>
       <div class="stat-box"><div class="stat-num" id="st-answered">0</div><div class="stat-label">回答済み</div></div>
     </div>
-    <div class="divider"></div>
+    <div class="divider" id="divider-before-result"></div>
     <div id="result-area" style="display:none">
       <div class="chart-wrap"><canvas id="myChart"></canvas></div>
       <div class="divider"></div>
