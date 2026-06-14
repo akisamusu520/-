@@ -462,79 +462,7 @@ window.resetAll=function(){
   show('s-top');
 };
 
-// PC/スマホレイアウト切り替え
-function applyPCLayout(){
-  if(window.innerWidth < 900) return;
-  const screen = document.getElementById('s-host-run');
-  if(!screen || !screen.classList.contains('active')) return;
 
-  // すでに適用済みならスキップ
-  if(screen.dataset.pcLayout) return;
-  screen.dataset.pcLayout = '1';
-
-  screen.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start';
-
-  // 右カラム用ラッパー作成
-  const right = document.createElement('div');
-  right.id = 'pc-right-col';
-  right.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.75rem';
-
-  const resultArea = document.getElementById('result-area');
-  const scoreArea = resultArea && resultArea.nextElementSibling;
-
-  // result-areaと累計スコアを右カラムへ移動
-  if(resultArea) right.appendChild(resultArea);
-  if(scoreArea && scoreArea.querySelector('#score-ranking')) right.appendChild(scoreArea);
-
-  screen.appendChild(right);
-
-  // コード・統計を大きく
-  const code = document.getElementById('run-room-code');
-  if(code) code.style.fontSize = '72px';
-  document.querySelectorAll('.stat-num').forEach(el=>el.style.fontSize='40px');
-  document.querySelectorAll('.stat-box').forEach(el=>el.style.padding='1.2rem');
-  document.querySelectorAll('.chart-wrap').forEach(el=>el.style.height='280px');
-}
-
-function resetPCLayout(){
-  const screen = document.getElementById('s-host-run');
-  if(!screen || !screen.dataset.pcLayout) return;
-  delete screen.dataset.pcLayout;
-  screen.style.cssText = '';
-
-  const right = document.getElementById('pc-right-col');
-  const card = screen.querySelector('.card');
-  const divider = document.getElementById('divider-before-result');
-
-  if(right && card && divider){
-    // result-areaと累計スコアをcardに戻す
-    const resultArea = document.getElementById('result-area');
-    const scoreArea = right.children[1];
-    if(resultArea) card.insertBefore(resultArea, document.getElementById('guest-list'));
-    if(scoreArea) card.insertBefore(scoreArea, document.getElementById('guest-list'));
-    right.remove();
-  }
-
-  const code = document.getElementById('run-room-code');
-  if(code) code.style.fontSize = '';
-  document.querySelectorAll('.stat-num').forEach(el=>el.style.fontSize='');
-  document.querySelectorAll('.stat-box').forEach(el=>el.style.padding='');
-  document.querySelectorAll('.chart-wrap').forEach(el=>el.style.height='');
-}
-
-// show()をラップしてPC対応
-const _origShow = window.show;
-window.show = function(id){
-  _origShow(id);
-  if(id === 's-host-run') setTimeout(applyPCLayout, 50);
-  else if(id !== 's-host-run') resetPCLayout();
-};
-window.addEventListener('resize', function(){
-  const screen = document.getElementById('s-host-run');
-  if(!screen || !screen.classList.contains('active')) return;
-  if(window.innerWidth >= 900) applyPCLayout();
-  else resetPCLayout();
-});
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -624,49 +552,6 @@ input:focus{border-color:var(--accent);background:#fff}
 .top-role-icon{font-size:28px;margin-bottom:10px;display:block}
 .top-role-name{font-size:16px;font-weight:700;letter-spacing:.05em;color:var(--text)}
 
-  .app{max-width:100%}
-
-  /* ホスト進行画面：2カラムレイアウト */
-  #s-host-run{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start}
-  #s-host-run .card{margin-bottom:0;grid-column:1/2}
-  #btn-area-run{grid-column:1/2;display:flex !important}
-  #btn-area-next{grid-column:1/2}
-
-  /* 右カラムにresult-areaを移動（CSSで見た目だけ） */
-  #result-area{grid-column:2/3;grid-row:1/10;background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:1.75rem;margin-bottom:0}
-  #result-area.pc-right{display:block !important}
-
-  /* コード・統計を大きく */
-  .room-code{font-size:80px !important}
-  .stat-num{font-size:44px !important}
-  .stat-box{padding:1.2rem !important}
-
-  /* グラフを大きく */
-  .chart-wrap{height:300px !important}
-
-  /* ランキング文字を大きく */
-  .ranking-row{font-size:16px !important;padding:10px 0 !important}
-  .rank-medal{font-size:24px !important}
-  .rank-num{font-size:24px !important}
-
-  /* ボタンを大きく */
-  .btn{font-size:17px !important;padding:14px 22px !important}
-  .btn-primary{padding:16px !important}
-}
-
-.host-layout{display:flex;flex-direction:column;gap:0}
-@media(min-width:900px){
-  body{padding:2rem}
-  .app{max-width:1200px}
-  .host-layout{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start}
-  .room-code{font-size:72px !important}
-  .stat-num{font-size:40px !important}
-  .chart-wrap{height:300px !important}
-  .ranking-row{font-size:16px !important}
-  .rank-medal{font-size:24px !important}
-  .rank-num{font-size:24px !important}
-  .btn{font-size:16px !important}
-}
 </style>
 </head>
 <body>
@@ -707,56 +592,48 @@ input:focus{border-color:var(--accent);background:#fff}
 
 <!-- HOST: 進行 -->
 <div id="s-host-run" class="screen">
-  <div class="host-layout">
-    <!-- 左カラム：コード・統計・ゲスト一覧 -->
-    <div class="host-col-left">
-      <div class="card">
-        <div class="room-code-box">
-          <div class="room-code" id="run-room-code">----</div>
-          <div class="room-code-label">ゲストに教えるコード（2桁）</div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-          <span style="font-size:13px;font-weight:600;color:var(--muted)">選択肢の数</span>
-          <span style="font-size:20px;font-weight:700;color:var(--accent)" id="run-count">4</span>
-        </div>
-        <div class="stat-row">
-          <div class="stat-box"><div class="stat-num" id="st-guests">0</div><div class="stat-label">参加者</div></div>
-          <div class="stat-box"><div class="stat-num" id="st-answered">0</div><div class="stat-label">回答済み</div></div>
-        </div>
-        <div class="divider"></div>
-        <div id="guest-list"></div>
-      </div>
-      <div id="btn-area-run" class="btn-row" style="display:flex">
-        <button class="btn btn-primary" onclick="hostRevealResult()">結果発表 📊</button>
-        <button id="btn-end-1" class="btn btn-danger" style="width:auto;padding:11px 18px">終了</button>
-      </div>
-      <div id="btn-area-next" class="btn-row" style="display:none">
-        <button class="btn btn-primary" onclick="hostNextQuestion()">次の問題へ →</button>
-        <button id="btn-end-2" class="btn btn-danger" style="width:auto;padding:11px 18px">終了</button>
-      </div>
+  <div class="card">
+    <div class="room-code-box">
+      <div class="room-code" id="run-room-code">----</div>
+      <div class="room-code-label">ゲストに教えるコード（2桁）</div>
     </div>
-    <!-- 右カラム：グラフ・ランキング・正解選択・累計スコア -->
-    <div class="host-col-right">
-      <div class="card">
-        <div id="result-area" style="display:none">
-          <div class="chart-wrap"><canvas id="myChart"></canvas></div>
-          <div class="divider"></div>
-          <div id="ranking-list"></div>
-          <div class="divider"></div>
-          <div id="correct-area" style="display:none">
-            <p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:.5rem">正解番号を選ぶ</p>
-            <div class="num-grid" id="correct-num-grid"></div>
-            <div style="display:flex;align-items:center;gap:10px;margin-top:.5rem">
-              <p id="correct-result-msg" style="font-size:13px;color:var(--accent);font-weight:600;flex:1;min-height:1.4em"></p>
-              <button id="btn-undo-correct" onclick="hostUndoCorrect()" style="display:none;font-size:12px;padding:5px 10px;border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;cursor:pointer;white-space:nowrap">↩ 取り消す</button>
-            </div>
-          </div>
-          <div class="divider"></div>
-        </div>
-        <p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:.5rem">累計スコア</p>
-        <div id="score-ranking"></div>
-      </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <span style="font-size:13px;font-weight:600;color:var(--muted)">選択肢の数</span>
+      <span style="font-size:20px;font-weight:700;color:var(--accent)" id="run-count">4</span>
     </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-num" id="st-guests">0</div><div class="stat-label">参加者</div></div>
+      <div class="stat-box"><div class="stat-num" id="st-answered">0</div><div class="stat-label">回答済み</div></div>
+    </div>
+    <div class="divider"></div>
+    <div id="result-area" style="display:none">
+      <div class="chart-wrap"><canvas id="myChart"></canvas></div>
+      <div class="divider"></div>
+      <div id="ranking-list"></div>
+      <div class="divider"></div>
+      <div id="correct-area" style="display:none">
+        <p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:.5rem">正解番号を選ぶ</p>
+        <div class="num-grid" id="correct-num-grid"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:.5rem">
+          <p id="correct-result-msg" style="font-size:13px;color:var(--accent);font-weight:600;flex:1;min-height:1.4em"></p>
+          <button id="btn-undo-correct" onclick="hostUndoCorrect()" style="display:none;font-size:12px;padding:5px 10px;border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;cursor:pointer;white-space:nowrap">↩ 取り消す</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+    </div>
+    <div style="margin-bottom:1rem">
+      <p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:.5rem">累計スコア</p>
+      <div id="score-ranking"></div>
+    </div>
+    <div id="guest-list"></div>
+  </div>
+  <div id="btn-area-run" class="btn-row" style="display:flex">
+    <button class="btn btn-primary" onclick="hostRevealResult()">結果発表 📊</button>
+    <button id="btn-end-1" class="btn btn-danger" style="width:auto;padding:11px 18px">終了</button>
+  </div>
+  <div id="btn-area-next" class="btn-row" style="display:none">
+    <button class="btn btn-primary" onclick="hostNextQuestion()">次の問題へ →</button>
+    <button id="btn-end-2" class="btn btn-danger" style="width:auto;padding:11px 18px">終了</button>
   </div>
 </div>
 
