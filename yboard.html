@@ -37,6 +37,7 @@ let guestSelected=null;
 let unsubscribe=null;
 let scoreCache={};
 let guestQuestionId=0;
+let lastCorrectNum=null;
 
 // ===== HOST =====
 window.goHost=function(){show('s-host-setup');};
@@ -126,6 +127,8 @@ window.hostRevealResult=function(){
     }
     $('correct-area').style.display='block';
     $('correct-result-msg').textContent='';
+    $('btn-undo-correct').style.display='none';
+    lastCorrectNum=null;
   });
 };
 
@@ -142,6 +145,8 @@ window.hostSelectCorrect=async function(num){
     updates['rooms/'+roomCode+'/scores/'+name]=scoreCache[name];
   });
   if(Object.keys(updates).length>0) await update(ref(db),updates);
+  lastCorrectNum=num;
+  $('btn-undo-correct').style.display='inline-block';
   // ボタン強調
   document.querySelectorAll('#correct-num-grid .num-btn').forEach((b,i)=>{
     b.classList.toggle('selected',(i+1)===num);
@@ -151,6 +156,28 @@ window.hostSelectCorrect=async function(num){
     : '正解者なし';
   $('correct-result-msg').textContent=msg;
   // 累計ランキング更新
+  renderScoreRanking();
+};
+
+window.hostUndoCorrect=async function(){
+  if(lastCorrectNum===null)return;
+  const snap=await get(ref(db,'rooms/'+roomCode));
+  const data=snap.val()||{};
+  const answers=data.answers||{};
+  // 前回の正解者から-1
+  const winners=Object.entries(answers).filter(e=>e[1]===lastCorrectNum).map(e=>e[0]);
+  const updates={};
+  winners.forEach(name=>{
+    const newScore=Math.max(0,(scoreCache[name]||1)-1);
+    scoreCache[name]=newScore;
+    updates['rooms/'+roomCode+'/scores/'+name]=newScore;
+  });
+  if(Object.keys(updates).length>0) await update(ref(db),updates);
+  lastCorrectNum=null;
+  $('btn-undo-correct').style.display='none';
+  // ボタン強調リセット
+  document.querySelectorAll('#correct-num-grid .num-btn').forEach(b=>b.classList.remove('selected'));
+  $('correct-result-msg').textContent='取り消しました';
   renderScoreRanking();
 };
 
@@ -222,6 +249,25 @@ function renderScoreRanking(){
   });
 }
 
+function renderFinalRankingFromScores(scores,elId){
+  const el=$(elId);
+  if(!el)return;
+  const sorted=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  if(sorted.length===0){el.innerHTML='<p style="color:var(--faint);font-size:13px;text-align:center">スコアなし</p>';return;}
+  const medals=['🥇','🥈','🥉'];
+  let rank=0,prevScore=-1;
+  el.innerHTML=sorted.map(([name,score],i)=>{
+    if(score!==prevScore){rank=i+1;prevScore=score;}
+    const medal=rank<=3&&score>0?medals[rank-1]:'';
+    const isTop=rank===1&&score>0;
+    return '<div class="ranking-row" style="font-size:'+(isTop?'17':'15')+'px;'+(isTop?'background:var(--accent-bg);border-radius:8px;padding:10px 8px;':'')+'">'+
+      '<span style="width:30px;text-align:center;font-size:'+(isTop?'22':'16')+'px">'+medal+'</span>'+
+      '<span style="flex:1;font-weight:'+(isTop?'800':'600')+'">'+name+'</span>'+
+      '<span style="font-weight:700;color:var(--accent);font-size:'+(isTop?'20':'16')+'px">'+score+'点</span>'+
+    '</div>';
+  }).join('');
+}
+
 function renderFinalRanking(elId){
   const el=$(elId);
   if(!el)return;
@@ -275,14 +321,16 @@ window.hostEnd=async function(){
   toast('終了処理中…');
   if(unsubscribe){unsubscribe();unsubscribe=null;}
   try{
-    if(Object.keys(scoreCache).length>0){
-      await set(ref(db,'final/'+roomCode),{scores:scoreCache,ts:Date.now()});
+    const scSnap=await get(ref(db,'rooms/'+roomCode+'/scores'));
+    const finalScores=scSnap.val()||{};
+    if(Object.keys(finalScores).length>0){
+      await set(ref(db,'final/'+roomCode),{scores:finalScores,ts:Date.now()});
     }
     await remove(ref(db,'rooms/'+roomCode));
-  }catch(e){toast('エラー:'+e.message);}
-  scoreCache={};
-  renderFinalRanking('host-final-ranking');
-  show('s-final');
+    // 参加者と同じ画面に表示
+    renderFinalRankingFromScores(finalScores,'guest-final-ranking');
+  }catch(e){}
+  show('s-guest-end');
 };
 
 // 終了ボタンにイベントリスナーを直接登録
@@ -344,7 +392,7 @@ window.guestJoin=async function(){
         const fd=fsnap.val()||{};
         const scores=fd.scores||{};
         Object.keys(scores).forEach(n=>scoreCache[n]=scores[n]);
-        renderFinalRanking('guest-final-ranking');
+        renderFinalRankingFromScores(scores,'guest-final-ranking');
         show('s-guest-end');
       });
       return;
@@ -555,7 +603,10 @@ input:focus{border-color:var(--accent);background:#fff}
       <div id="correct-area" style="display:none">
         <p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:.5rem">正解番号を選ぶ</p>
         <div class="num-grid" id="correct-num-grid"></div>
-        <p id="correct-result-msg" style="font-size:13px;color:var(--accent);margin-top:.5rem;font-weight:600;min-height:1.4em"></p>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:.5rem">
+          <p id="correct-result-msg" style="font-size:13px;color:var(--accent);font-weight:600;flex:1;min-height:1.4em"></p>
+          <button id="btn-undo-correct" onclick="hostUndoCorrect()" style="display:none;font-size:12px;padding:5px 10px;border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;cursor:pointer;white-space:nowrap">↩ 取り消す</button>
+        </div>
       </div>
       <div class="divider"></div>
     </div>
