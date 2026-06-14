@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yボード — 三重県臨床工学技士会</title>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, update, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAAeLy_vD9PUHXZKprUTlRxoKSbMcoz3mc",
+  authDomain: "yboard-26e09.firebaseapp.com",
+  databaseURL: "https://yboard-26e09-default-rtdb.firebaseio.com",
+  projectId: "yboard-26e09",
+  storageBucket: "yboard-26e09.firebasestorage.app",
+  messagingSenderId: "114601560655",
+  appId: "1:114601560655:web:65ceb9f30d88551674f83a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const $ = id => document.getElementById(id);
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
+function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
+function randCode(){return String(Math.floor(1000+Math.random()*9000));}
+
+const COLORS=['#1a7a4a','#2d9e64','#48bb87','#6dcfa6','#94dfc0','#b8edda','#145e38','#0f4a2c','#3aaa72','#5cbf8e'];
+
+let roomCode='';
+let choiceCount=4;
+let chartInst=null;
+let isHost=false;
+let guestName='';
+let guestSelected=null;
+let unsubscribe=null;
+
+// ===== HOST =====
+window.goHost=function(){show('s-host-setup');};
+
+window.changeCount=function(d){
+  const el=$('choice-count');
+  let v=Math.min(10,Math.max(1,parseInt(el.value)+d));
+  el.value=v;$('count-preview').textContent=v;
+};
+
+window.hostOpenRoom=async function(){
+  choiceCount=parseInt($('choice-count').value)||4;
+  roomCode=randCode();
+  isHost=true;
+
+  // ルーム初期化
+  await set(ref(db,'rooms/'+roomCode),{
+    choiceCount:choiceCount,
+    revealed:false,
+    answers:{},
+    guests:{}
+  });
+
+  $('run-room-code').textContent=roomCode;
+  $('run-count').textContent=choiceCount;
+  $('result-area').style.display='none';
+  $('btn-area-run').style.display='flex';
+  $('btn-area-next').style.display='none';
+
+  // リスナー開始
+  if(unsubscribe) unsubscribe();
+  unsubscribe=onValue(ref(db,'rooms/'+roomCode),snap=>{
+    const data=snap.val();
+    if(!data) return;
+    renderHostView(data);
+  });
+
+  show('s-host-run');
+};
+
+function renderHostView(data){
+  const guests=data.guests||{};
+  const answers=data.answers||{};
+  const names=Object.keys(guests);
+  const answered=Object.keys(answers).length;
+
+  $('st-guests').textContent=names.length;
+  $('st-answered').textContent=answered;
+
+  // ゲスト一覧
+  const el=$('guest-list');
+  if(names.length===0){
+    el.innerHTML='<p style="font-size:13px;color:var(--faint);text-align:center;padding:.5rem 0">ゲストを待っています…</p>';
+    return;
+  }
+  el.innerHTML=names.map(n=>{
+    const hasAns=answers[n]!==undefined;
+    const badge=hasAns
+      ?'<span class="badge badge-done">回答済み</span>'
+      :'<span class="badge badge-wait">待機中</span>';
+    return '<div class="guest-row"><span class="gname">'+n+'</span>'+badge+'</div>';
+  }).join('');
+}
+
+window.hostRevealResult=function(){
+  $('result-area').style.display='block';
+  $('btn-area-run').style.display='none';
+  $('btn-area-next').style.display='flex';
+  // 現在のデータで描画
+  get(ref(db,'rooms/'+roomCode)).then(snap=>{
+    const data=snap.val()||{};
+    const answers=data.answers||{};
+    const count=data.choiceCount||choiceCount;
+    renderChart(answers,count);
+    renderRanking(answers,count);
+  });
+};
+
+function renderChart(answers,count){
+  const votes=getVotes(answers,count);
+  const labels=votes.map(v=>v.num+'番');
+  const data=votes.map(v=>v.count);
+  const total=data.reduce((a,b)=>a+b,0);
+  if(chartInst)chartInst.destroy();
+  const ctx=$('myChart').getContext('2d');
+  chartInst=new Chart(ctx,{type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:COLORS.slice(0,count),borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const pct=total>0?Math.round(c.raw/total*100):0;return c.raw+'人 ('+pct+'%)';}}}},
+      scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:'#4e7560'},grid:{color:'#d4e6db'}},x:{ticks:{color:'#4e7560'},grid:{display:false}}}}});
+}
+
+function renderRanking(answers,count){
+  const votes=getVotes(answers,count);
+  const total=votes.reduce((a,v)=>a+v.count,0);
+  const sorted=votes.slice().sort((a,b)=>b.count-a.count);
+  const medals=['🥇','🥈','🥉'];
+  let rank=0,prevCount=-1;
+  $('ranking-list').innerHTML=sorted.map((v,i)=>{
+    if(v.count!==prevCount){rank=i+1;prevCount=v.count;}
+    const pct=total>0?Math.round(v.count/total*100):0;
+    const barW=total>0?(v.count/total*100):0;
+    const medal=rank<=3&&v.count>0?medals[rank-1]:'';
+    return '<div class="ranking-row">'+
+      '<span class="rank-medal">'+medal+'</span>'+
+      '<span class="rank-num">'+v.num+'番</span>'+
+      '<div class="rank-bar-wrap"><div class="rank-bar" style="width:'+barW+'%;background:'+COLORS[(v.num-1)%COLORS.length]+'"></div></div>'+
+      '<span class="rank-count">'+v.count+'人</span>'+
+      '<span class="rank-pct">'+pct+'%</span>'+
+    '</div>';
+  }).join('');
+}
+
+function getVotes(answers,count){
+  const votes=[];
+  for(let i=1;i<=count;i++){
+    const who=Object.entries(answers).filter(e=>e[1]===i).map(e=>e[0]);
+    votes.push({num:i,count:who.length,names:who});
+  }
+  return votes;
+}
+
+window.hostNextQuestion=function(){
+  $('next-count').value=choiceCount;
+  $('next-count-preview').textContent=choiceCount;
+  show('s-host-next');
+};
+
+window.changeNextCount=function(d){
+  const el=$('next-count');
+  let v=Math.min(10,Math.max(1,parseInt(el.value)+d));
+  el.value=v;$('next-count-preview').textContent=v;
+};
+
+window.hostSendNext=async function(){
+  const newCount=parseInt($('next-count').value)||4;
+  choiceCount=newCount;
+  await update(ref(db,'rooms/'+roomCode),{choiceCount:newCount,answers:{},revealed:false});
+  $('run-count').textContent=choiceCount;
+  $('result-area').style.display='none';
+  $('btn-area-run').style.display='flex';
+  $('btn-area-next').style.display='none';
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  show('s-host-run');
+  toast('選択肢 1〜'+newCount+' で送信しました');
+};
+
+window.hostEnd=async function(){
+  if(unsubscribe)unsubscribe();
+  await remove(ref(db,'rooms/'+roomCode));
+  resetAll();
+};
+
+// ===== GUEST =====
+window.goGuest=function(){show('s-guest-join');};
+
+window.guestJoin=async function(){
+  const code=$('g-code').value.trim();
+  const name=$('g-name').value.trim();
+  if(code.length!==4){$('g-code').focus();return toast('4桁のコードを入力してください');}
+  if(!name){$('g-name').focus();return toast('名前を入力してください');}
+
+  $('g-join-btn').disabled=true;
+  const statusEl=$('g-status-msg');
+  statusEl.style.display='block';
+  statusEl.textContent='接続中…';
+
+  const snap=await get(ref(db,'rooms/'+code));
+  if(!snap.exists()){
+    $('g-join-btn').disabled=false;
+    statusEl.style.display='none';
+    return toast('ルームが見つかりません。コードを確認してください');
+  }
+
+  roomCode=code;
+  guestName=name;
+  guestSelected=null;
+  isHost=false;
+
+  // ゲスト登録
+  await update(ref(db,'rooms/'+roomCode+'/guests'),{[name]:true});
+
+  $('g-join-btn').disabled=false;
+  statusEl.style.display='none';
+
+  // 現在の選択肢数で画面表示
+  const data=snap.val();
+  choiceCount=data.choiceCount||4;
+  $('g-name-label').textContent=name;
+  buildNumGrid(choiceCount);
+  show('s-guest-answer');
+
+  // 選択肢数の変更を監視
+  if(unsubscribe)unsubscribe();
+  unsubscribe=onValue(ref(db,'rooms/'+roomCode),snap=>{
+    const data=snap.val();
+    if(!data){
+      // ルームが削除された＝終了
+      if(unsubscribe)unsubscribe();
+      show('s-guest-end');
+      return;
+    }
+    const newCount=data.choiceCount||4;
+    if(newCount!==choiceCount){
+      choiceCount=newCount;
+      guestSelected=null;
+      buildNumGrid(choiceCount);
+      show('s-guest-answer');
+      toast('次の問題です（選択肢 1〜'+newCount+'）');
+    }
+  });
+};
+
+function buildNumGrid(count){
+  const grid=$('g-num-grid');
+  grid.innerHTML='';
+  for(let i=1;i<=count;i++){
+    const btn=document.createElement('button');
+    btn.className='num-btn';
+    btn.textContent=i;
+    btn.onclick=function(){
+      grid.querySelectorAll('.num-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      guestSelected=i;
+      $('g-submit-btn').disabled=false;
+    };
+    grid.appendChild(btn);
+  }
+  guestSelected=null;
+  $('g-submit-btn').disabled=true;
+}
+
+window.guestSubmit=async function(){
+  if(guestSelected===null)return;
+  await update(ref(db,'rooms/'+roomCode+'/answers'),{[guestName]:guestSelected});
+  $('g-sent-num').textContent=guestSelected;
+  show('s-guest-wait');
+};
+
+window.guestReAnswer=function(){
+  buildNumGrid(choiceCount);
+  show('s-guest-answer');
+};
+
+// ===== RESET =====
+window.resetAll=function(){
+  if(unsubscribe)unsubscribe();
+  unsubscribe=null;
+  roomCode='';choiceCount=4;guestName='';guestSelected=null;isHost=false;
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  show('s-top');
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f2f7f4;--surface:#fff;--border:#d4e6db;--border-md:#aecfba;
+  --text:#1a2e22;--muted:#4e7560;--faint:#8bab97;
+  --accent:#1a7a4a;--accent-bg:#e8f5ee;--accent-dark:#145e38;
+  --success:#15803d;--success-bg:#f0fdf4;
+  --danger:#b91c1c;--danger-bg:#fef2f2;
+  --warn:#92400e;--warn-bg:#fffbeb;
+  --r:10px;--rlg:16px;
+}
+body{font-family:'Hiragino Sans','Yu Gothic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:1.5rem 1rem 5rem;display:flex;justify-content:center}
+.app{width:100%;max-width:520px}
+.screen{display:none}.screen.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:1.75rem;margin-bottom:1rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;border:1.5px solid var(--border-md);border-radius:var(--r);background:var(--surface);color:var(--text);font-size:15px;font-weight:600;cursor:pointer;transition:all .12s;font-family:inherit;width:100%}
+.btn:hover{background:var(--bg)}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;padding:13px}
+.btn-primary:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+.btn-back{width:auto;font-size:13px;color:var(--muted);border-color:var(--border);padding:7px 13px;margin-bottom:1.25rem}
+.btn-danger{background:var(--danger-bg);border-color:var(--danger);color:var(--danger)}
+.btn-row{display:flex;gap:10px}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:.5rem}
+.role-btn{padding:1.5rem 1rem;border:1.5px solid var(--border);border-radius:var(--r);background:var(--surface);cursor:pointer;text-align:center;transition:all .15s;color:var(--text);font-family:inherit}
+.role-btn:hover{border-color:var(--accent);background:var(--accent-bg)}
+.role-icon{font-size:30px;margin-bottom:10px}
+.role-name{font-size:17px;font-weight:700}
+input[type=text],input[type=number]{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--r);font-size:15px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border .15s}
+input:focus{border-color:var(--accent);background:#fff}
+.room-code-box{background:var(--accent-bg);border:1px solid var(--border-md);border-radius:var(--r);padding:1.25rem;text-align:center;margin-bottom:1rem}
+.room-code{font-size:42px;font-weight:700;letter-spacing:8px;color:var(--accent);font-family:monospace}
+.room-code-label{font-size:12px;color:var(--muted);margin-top:4px;font-weight:600}
+.stat-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:1rem 0}
+.stat-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem;text-align:center}
+.stat-num{font-size:28px;font-weight:700;color:var(--text)}
+.stat-label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.05em;margin-top:2px}
+.guest-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
+.guest-row:last-child{border-bottom:none}
+.gname{font-size:14px;font-weight:600}
+.badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px}
+.badge-wait{background:var(--warn-bg);color:var(--warn)}
+.badge-done{background:var(--success-bg);color:var(--success)}
+.num-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:1.25rem 0}
+.num-btn{aspect-ratio:1;font-size:22px;font-weight:700;border:1.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text);cursor:pointer;transition:all .12s;font-family:inherit}
+.num-btn:hover{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.num-btn.selected{background:var(--accent);border-color:var(--accent);color:#fff}
+.chart-wrap{position:relative;width:100%;height:260px;margin:1rem 0}
+.stepper{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden}
+.stepper-btn{width:46px;height:46px;border:none;background:var(--bg);font-size:22px;cursor:pointer;font-family:inherit;color:var(--text);flex-shrink:0}
+.stepper-btn:hover{background:var(--border-md)}
+.stepper-val{flex:1;text-align:center;font-size:22px;font-weight:700;border:none;outline:none;background:var(--surface);font-family:inherit;color:var(--accent)}
+.divider{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
+.dots{display:flex;justify-content:center;gap:7px;margin:1.5rem 0 1rem}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--border-md);animation:blink 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1a2e22;color:#fff;padding:10px 20px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
+.toast.show{opacity:1}
+.ranking-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.ranking-row:last-child{border-bottom:none}
+.rank-medal{font-size:20px;min-width:28px;text-align:center}
+.rank-num{font-size:20px;font-weight:700;color:var(--accent);min-width:40px}
+.rank-bar-wrap{flex:1;height:12px;background:var(--bg);border-radius:999px;overflow:hidden}
+.rank-bar{height:100%;border-radius:999px;transition:width .5s}
+.rank-count{font-size:15px;font-weight:700;min-width:36px;text-align:right;color:var(--text)}
+.rank-pct{font-size:12px;color:var(--faint);min-width:36px;text-align:right}
+.top-header{text-align:center;padding:2rem 1rem 1.5rem}
+.top-org{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--muted);margin-bottom:.35rem}
+.top-title{font-size:28px;font-weight:900;color:var(--text);letter-spacing:.05em}
+.top-sub{font-size:13px;color:var(--faint);margin-top:.35rem}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOP -->
+<div id="s-top" class="screen active">
+  <div class="top-header">
+    <div class="top-org">三重県臨床工学技士会</div>
+    <div class="top-title">Yボード</div>
+    <div class="top-sub">リアルタイム回答集計システム</div>
+  </div>
+  <div class="card">
+    <div class="role-grid">
+      <button class="role-btn" onclick="goHost()">
+        <div class="role-icon">📋</div>
+        <div class="role-name">ホスト</div>
+      </button>
+      <button class="role-btn" onclick="goGuest()">
+        <div class="role-icon">🙋</div>
+        <div class="role-name">ゲスト</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- HOST: 設定 -->
+<div id="s-host-setup" class="screen">
+  <button class="btn btn-back" onclick="show('s-top')">← 戻る</button>
+  <div class="card">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:.75rem">選択肢の数（1〜10）</p>
+    <div class="stepper">
+      <button class="stepper-btn" onclick="changeCount(-1)">－</button>
+      <input class="stepper-val" type="number" id="choice-count" value="4" min="1" max="10" readonly>
+      <button class="stepper-btn" onclick="changeCount(1)">＋</button>
+    </div>
+    <p style="font-size:12px;color:var(--faint);margin-top:.5rem">1〜<span id="count-preview">4</span> の番号が選択肢になります</p>
+  </div>
+  <button class="btn btn-primary" onclick="hostOpenRoom()">部屋を作る →</button>
+</div>
+
+<!-- HOST: 進行 -->
+<div id="s-host-run" class="screen">
+  <div class="card">
+    <div class="room-code-box">
+      <div class="room-code" id="run-room-code">----</div>
+      <div class="room-code-label">ゲストに教えるコード</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <span style="font-size:13px;font-weight:600;color:var(--muted)">選択肢の数</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px;font-weight:700;min-width:28px;text-align:center;color:var(--accent)" id="run-count">4</span>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-num" id="st-guests">0</div><div class="stat-label">参加者</div></div>
+      <div class="stat-box"><div class="stat-num" id="st-answered">0</div><div class="stat-label">回答済み</div></div>
+    </div>
+    <div class="divider"></div>
+    <div id="result-area" style="display:none">
+      <div class="chart-wrap"><canvas id="myChart"></canvas></div>
+      <div class="divider"></div>
+      <div id="ranking-list"></div>
+      <div class="divider"></div>
+    </div>
+    <div id="guest-list"></div>
+  </div>
+  <div class="btn-row" id="btn-area-run">
+    <button class="btn btn-primary" onclick="hostRevealResult()">結果発表 📊</button>
+    <button class="btn btn-danger" style="width:auto;padding:11px 18px" onclick="hostEnd()">終了</button>
+  </div>
+  <div class="btn-row" id="btn-area-next" style="display:none">
+    <button class="btn btn-primary" onclick="hostNextQuestion()">次の問題へ →</button>
+    <button class="btn btn-danger" style="width:auto;padding:11px 18px" onclick="hostEnd()">終了</button>
+  </div>
+</div>
+
+<!-- HOST: 次の問題 -->
+<div id="s-host-next" class="screen">
+  <div class="card">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:.75rem">次の問題の選択肢の数</p>
+    <div class="stepper">
+      <button class="stepper-btn" onclick="changeNextCount(-1)">－</button>
+      <input class="stepper-val" type="number" id="next-count" value="4" min="1" max="10" readonly>
+      <button class="stepper-btn" onclick="changeNextCount(1)">＋</button>
+    </div>
+    <p style="font-size:12px;color:var(--faint);margin-top:.5rem">1〜<span id="next-count-preview">4</span> の番号が選択肢になります</p>
+  </div>
+  <button class="btn btn-primary" onclick="hostSendNext()">この選択肢数で送信 →</button>
+</div>
+
+<!-- GUEST: 参加 -->
+<div id="s-guest-join" class="screen">
+  <button class="btn btn-back" onclick="show('s-top')">← 戻る</button>
+  <div class="card">
+    <input type="text" id="g-code" placeholder="4桁のコード" maxlength="4" inputmode="numeric"
+      style="font-size:28px;font-weight:700;letter-spacing:8px;text-align:center;margin-bottom:.75rem">
+    <input type="text" id="g-name" placeholder="名前" maxlength="20">
+    <button class="btn btn-primary" style="margin-top:1rem" id="g-join-btn" onclick="guestJoin()">参加する →</button>
+    <p style="font-size:13px;text-align:center;margin-top:.75rem;color:var(--muted);display:none" id="g-status-msg"></p>
+  </div>
+</div>
+
+<!-- GUEST: 回答 -->
+<div id="s-guest-answer" class="screen">
+  <div class="card">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:.25rem" id="g-name-label"></p>
+    <div class="num-grid" id="g-num-grid"></div>
+    <button class="btn btn-primary" id="g-submit-btn" onclick="guestSubmit()" disabled>送信する →</button>
+  </div>
+</div>
+
+<!-- GUEST: 送信後 -->
+<div id="s-guest-wait" class="screen">
+  <div class="card" style="text-align:center;padding:2.5rem 1.75rem">
+    <p style="font-size:14px;color:var(--muted);margin-bottom:.25rem">あなたの回答</p>
+    <p style="font-size:56px;font-weight:700;color:var(--accent);margin:.25rem 0" id="g-sent-num"></p>
+    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <p style="font-size:13px;color:var(--faint)">次の問題を待っています…</p>
+    <button class="btn" style="margin-top:1.5rem;width:auto;padding:9px 20px" onclick="guestReAnswer()">回答しなおす</button>
+  </div>
+</div>
+
+<!-- GUEST: 終了 -->
+<div id="s-guest-end" class="screen">
+  <div class="card" style="text-align:center;padding:2.5rem 1.75rem">
+    <p style="font-size:32px;margin:.75rem 0">🎉</p>
+    <p style="font-size:16px;font-weight:600">お疲れ様でした！</p>
+  </div>
+  <button class="btn btn-primary" onclick="resetAll()">もう一度 →</button>
+</div>
+
+<div class="toast" id="toast"></div>
+</div>
+</body>
+</html>
