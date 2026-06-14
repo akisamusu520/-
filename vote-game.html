@@ -310,7 +310,7 @@ function updateGuestList(){
   el.innerHTML=names.map(function(n){
     var ans=hostAnswers[n];
     var right=ans!==undefined
-      ?'<span style="font-size:22px;font-weight:700;color:var(--accent)">'+ans+'</span>'
+      ?'<span class="badge badge-done">回答済み</span>'
       :'<span class="badge badge-wait">待機中</span>';
     return '<div class="guest-row"><span class="gname">'+n+'</span>'+right+'</div>';
   }).join('');
