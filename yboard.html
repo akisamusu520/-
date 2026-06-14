@@ -79,6 +79,10 @@ function renderHostView(data){
   const guests=data.guests||{};
   const answers=data.answers||{};
   const names=Object.keys(guests);
+  // スコア同期
+  const scores=data.scores||{};
+  Object.keys(scores).forEach(n=>scoreCache[n]=scores[n]);
+  renderScoreRanking();
   const answered=Object.keys(answers).length;
 
   $('st-guests').textContent=names.length;
@@ -103,14 +107,46 @@ window.hostRevealResult=function(){
   $('result-area').style.display='block';
   $('btn-area-run').style.display='none';
   $('btn-area-next').style.display='flex';
-  // 現在のデータで描画
   get(ref(db,'rooms/'+roomCode)).then(snap=>{
     const data=snap.val()||{};
     const answers=data.answers||{};
     const count=data.choiceCount||choiceCount;
     renderChart(answers,count);
     renderRanking(answers,count);
+    // 正解番号選択UI
+    const grid=$('correct-num-grid');
+    grid.innerHTML='';
+    for(let i=1;i<=count;i++){
+      const btn=document.createElement('button');
+      btn.className='num-btn';
+      btn.textContent=i;
+      btn.onclick=()=>hostSelectCorrect(i,answers);
+      grid.appendChild(btn);
+    }
+    $('correct-area').style.display='block';
+    $('correct-result-msg').textContent='';
   });
+};
+
+window.hostSelectCorrect=async function(num,answers){
+  // 正解者に+1
+  const winners=Object.entries(answers).filter(e=>e[1]===num).map(e=>e[0]);
+  const updates={};
+  winners.forEach(name=>{
+    updates['rooms/'+roomCode+'/scores/'+name]=(scoreCache[name]||0)+1;
+    scoreCache[name]=(scoreCache[name]||0)+1;
+  });
+  if(Object.keys(updates).length>0) await update(ref(db),updates);
+  // ボタン強調
+  document.querySelectorAll('#correct-num-grid .num-btn').forEach((b,i)=>{
+    b.classList.toggle('selected',(i+1)===num);
+  });
+  const msg=winners.length>0
+    ? winners.join('、')+'（'+winners.length+'人）に+1点！'
+    : '正解者なし';
+  $('correct-result-msg').textContent=msg;
+  // 累計ランキング更新
+  renderScoreRanking();
 };
 
 function renderChart(answers,count){
@@ -155,6 +191,24 @@ function getVotes(answers,count){
     votes.push({num:i,count:who.length,names:who});
   }
   return votes;
+}
+
+function renderScoreRanking(){
+  const el=$('score-ranking');
+  if(!el)return;
+  const sorted=Object.entries(scoreCache).sort((a,b)=>b[1]-a[1]);
+  if(sorted.length===0){el.innerHTML='<p style="color:var(--faint);font-size:13px;text-align:center">まだ点数がありません</p>';return;}
+  const medals=['🥇','🥈','🥉'];
+  let rank=0,prevScore=-1;
+  el.innerHTML=sorted.map(([name,score],i)=>{
+    if(score!==prevScore){rank=i+1;prevScore=score;}
+    const medal=rank<=3&&score>0?medals[rank-1]:'';
+    return '<div class="ranking-row" style="font-size:14px">'+
+      '<span style="width:24px;text-align:center">'+medal+'</span>'+
+      '<span style="flex:1;font-weight:600">'+name+'</span>'+
+      '<span style="font-weight:700;color:var(--accent);font-size:16px">'+score+'点</span>'+
+    '</div>';
+  }).join('');
 }
 
 window.hostNextQuestion=function(){
@@ -281,6 +335,7 @@ window.guestReAnswer=function(){
 
 // ===== RESET =====
 window.resetAll=function(){
+  scoreCache={};
   if(unsubscribe)unsubscribe();
   unsubscribe=null;
   roomCode='';choiceCount=4;guestName='';guestSelected=null;isHost=false;
@@ -435,6 +490,16 @@ input:focus{border-color:var(--accent);background:#fff}
       <div class="divider"></div>
       <div id="ranking-list"></div>
       <div class="divider"></div>
+      <div id="correct-area" style="display:none">
+        <p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:.5rem">正解番号を選ぶ</p>
+        <div class="num-grid" id="correct-num-grid"></div>
+        <p id="correct-result-msg" style="font-size:13px;color:var(--accent);margin-top:.5rem;font-weight:600;min-height:1.4em"></p>
+      </div>
+      <div class="divider"></div>
+    </div>
+    <div style="margin-bottom:1rem">
+      <p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:.5rem">累計スコア</p>
+      <div id="score-ranking"><p style="color:var(--faint);font-size:13px;text-align:center">まだ点数がありません</p></div>
     </div>
     <div id="guest-list"></div>
   </div>
