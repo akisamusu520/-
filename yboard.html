@@ -266,16 +266,15 @@ window.hostSendNext=async function(){
 };
 
 window.hostEnd=async function(){
+  toast('終了処理中…');
   if(unsubscribe){unsubscribe();unsubscribe=null;}
   try{
     if(Object.keys(scoreCache).length>0){
       await set(ref(db,'final/'+roomCode),{scores:scoreCache,ts:Date.now()});
     }
-  }catch(e){}
-  try{
     await remove(ref(db,'rooms/'+roomCode));
-  }catch(e){}
-  // 主催者終了画面へ
+  }catch(e){toast('エラー:'+e.message);}
+  scoreCache={};
   renderFinalRanking('host-final-ranking');
   show('s-final');
 };
@@ -550,13 +549,14 @@ input:focus{border-color:var(--accent);background:#fff}
     </div>
     <div id="guest-list"></div>
   </div>
-  <div class="btn-row" id="btn-area-run">
+  <!-- ボタンをfixed固定でスクロールに関係なく常に表示 -->
+  <div id="btn-area-run" class="btn-row" style="display:flex">
     <button class="btn btn-primary" onclick="hostRevealResult()">結果発表 📊</button>
-    <button class="btn btn-danger" style="width:auto;padding:11px 18px" onclick="hostEnd()">終了</button>
+    <button class="btn btn-danger" style="width:auto;padding:11px 18px" onclick="window.hostEnd()">終了</button>
   </div>
-  <div class="btn-row" id="btn-area-next" style="display:none">
+  <div id="btn-area-next" class="btn-row" style="display:none">
     <button class="btn btn-primary" onclick="hostNextQuestion()">次の問題へ →</button>
-    <button class="btn btn-danger" style="width:auto;padding:11px 18px" onclick="hostEnd()">終了</button>
+    <button class="btn btn-danger" style="width:auto;padding:11px 18px" onclick="window.hostEnd()">終了</button>
   </div>
 </div>
 
