@@ -324,6 +324,8 @@ window.hostEnd=async function(){
   toast('終了処理中…');
   localStorage.removeItem('yboard_host_room');
   localStorage.removeItem('yboard_host_count');
+  localStorage.removeItem('yboard_guest_room');
+  localStorage.removeItem('yboard_guest_name');
   if(unsubscribe){unsubscribe();unsubscribe=null;}
   try{
     const scSnap=await get(ref(db,'rooms/'+roomCode+'/scores'));
@@ -344,6 +346,27 @@ document.addEventListener('DOMContentLoaded',function(){
   var b2=document.getElementById('btn-end-2');
   if(b1)b1.addEventListener('click',function(){window.hostEnd();});
   if(b2)b2.addEventListener('click',function(){window.hostEnd();});
+
+  // 前回のゲストセッションが残っていれば復帰を提案
+  const savedGuestRoom=localStorage.getItem('yboard_guest_room');
+  const savedGuestName=localStorage.getItem('yboard_guest_name');
+  if(savedGuestRoom&&savedGuestName){
+    get(ref(db,'rooms/'+savedGuestRoom)).then(snap=>{
+      if(!snap.exists()){
+        localStorage.removeItem('yboard_guest_room');
+        localStorage.removeItem('yboard_guest_name');
+        return;
+      }
+      const banner=document.getElementById('resume-guest-banner');
+      const nameEl=document.getElementById('resume-guest-name');
+      const codeEl=document.getElementById('resume-guest-code');
+      if(banner&&nameEl&&codeEl){
+        nameEl.textContent=savedGuestName;
+        codeEl.textContent=savedGuestRoom;
+        banner.style.display='block';
+      }
+    });
+  }
 
   // 前回のホストセッションが残っていれば復帰を提案
   const savedRoom=localStorage.getItem('yboard_host_room');
@@ -402,9 +425,102 @@ window.hostResume=async function(){
   toast('ルーム '+roomCode+' に復帰しました');
 };
 
+window.hostReconnect=async function(){
+  const code=$('reconnect-code').value.trim();
+  if(code.length!==2){$('reconnect-code').focus();return toast('2桁のコードを入力してください');}
+
+  const snap=await get(ref(db,'rooms/'+code));
+  if(!snap.exists()){return toast('ルームが見つかりません。コードを確認してください');}
+
+  const data=snap.val()||{};
+  roomCode=code;
+  choiceCount=data.choiceCount||4;
+  isHost=true;
+
+  localStorage.setItem('yboard_host_room',roomCode);
+  localStorage.setItem('yboard_host_count',choiceCount);
+
+  $('run-room-code').textContent=roomCode;
+  $('run-count').textContent=choiceCount;
+  $('result-area').style.display='none';
+  $('btn-area-run').style.display='flex';
+  $('btn-area-next').style.display='none';
+
+  if(unsubscribe)unsubscribe();
+  unsubscribe=onValue(ref(db,'rooms/'+roomCode),snap=>{
+    const d=snap.val();
+    if(!d)return;
+    renderHostView(d);
+  });
+
+  show('s-host-run');
+  toast('ルーム '+roomCode+' に再接続しました');
+};
+
+window.guestResume=async function(){
+  const savedRoom=localStorage.getItem('yboard_guest_room');
+  const savedName=localStorage.getItem('yboard_guest_name');
+  if(!savedRoom||!savedName)return;
+
+  const snap=await get(ref(db,'rooms/'+savedRoom));
+  if(!snap.exists()){
+    toast('ルームがすでに終了しています');
+    localStorage.removeItem('yboard_guest_room');
+    localStorage.removeItem('yboard_guest_name');
+    document.getElementById('resume-guest-banner').style.display='none';
+    return;
+  }
+
+  roomCode=savedRoom;
+  guestName=savedName;
+  guestSelected=null;
+  isHost=false;
+  document.getElementById('resume-guest-banner').style.display='none';
+
+  const data=snap.val()||{};
+  choiceCount=data.choiceCount||4;
+  $('g-name-label').textContent=guestName;
+  buildNumGrid(choiceCount);
+  show('s-guest-answer');
+
+  if(unsubscribe)unsubscribe();
+  unsubscribe=onValue(ref(db,'rooms/'+roomCode),snap=>{
+    const d=snap.val();
+    if(!d){
+      if(unsubscribe)unsubscribe();
+      localStorage.removeItem('yboard_guest_room');
+      localStorage.removeItem('yboard_guest_name');
+      get(ref(db,'final/'+roomCode)).then(fsnap=>{
+        const fd=fsnap.val()||{};
+        renderFinalRankingFromScores(fd.scores||{},'guest-final-ranking');
+        show('s-guest-end');
+      });
+      return;
+    }
+    const newQId=d.questionId||0;
+    if(newQId!==guestQuestionId){
+      guestQuestionId=newQId;
+      choiceCount=d.choiceCount||4;
+      guestSelected=null;
+      buildNumGrid(choiceCount);
+      show('s-guest-answer');
+      if(newQId>0) toast('次の問題です（選択肢 1〜'+choiceCount+'）');
+    }
+  });
+  toast(savedName+'として再接続しました');
+};
+
+window.guestResumeCancel=function(){
+  localStorage.removeItem('yboard_guest_room');
+  localStorage.removeItem('yboard_guest_name');
+  document.getElementById('resume-guest-banner').style.display='none';
+};
+
 window.hostResumeCancel=function(){
   localStorage.removeItem('yboard_host_room');
   localStorage.removeItem('yboard_host_count');
+  localStorage.removeItem('yboard_guest_room');
+  localStorage.removeItem('yboard_guest_name');
   document.getElementById('resume-banner').style.display='none';
 };
 
@@ -429,13 +545,12 @@ window.guestJoin=async function(){
     return toast('ルームが見つかりません。コードを確認してください');
   }
 
-  // 同じ名前が既に入室していたらはじく
+  // 同じ名前が既に入室していたら再接続として扱う
   const roomData=snap.val()||{};
   const existingGuests=roomData.guests||{};
   if(Object.keys(existingGuests).includes(name)){
-    $('g-join-btn').disabled=false;
-    statusEl.style.display='none';
-    return toast('その名前はすでに使われています。別の名前にしてください');
+    // 同じ名前 → 再接続扱いでそのまま入室
+    toast(name+'として再接続します');
   }
 
   roomCode=code;
@@ -445,6 +560,9 @@ window.guestJoin=async function(){
 
   // ゲスト登録
   await update(ref(db,'rooms/'+roomCode+'/guests'),{[name]:true});
+  // 復帰用に保存
+  localStorage.setItem('yboard_guest_room', roomCode);
+  localStorage.setItem('yboard_guest_name', name);
 
   $('g-join-btn').disabled=false;
   statusEl.style.display='none';
@@ -463,6 +581,9 @@ window.guestJoin=async function(){
     if(!data){
       // ルームが削除された＝終了
       if(unsubscribe)unsubscribe();
+      // ゲスト用localStorageクリア
+      localStorage.removeItem('yboard_guest_room');
+      localStorage.removeItem('yboard_guest_name');
       // 最終スコアを取得して表示
       get(ref(db,'final/'+roomCode)).then(fsnap=>{
         const fd=fsnap.val()||{};
@@ -522,6 +643,8 @@ window.resetAll=function(){
   scoreCache={};
   localStorage.removeItem('yboard_host_room');
   localStorage.removeItem('yboard_host_count');
+  localStorage.removeItem('yboard_guest_room');
+  localStorage.removeItem('yboard_guest_name');
   // finalデータ削除（自分がホストだった場合）
   if(roomCode&&isHost){try{remove(ref(db,'final/'+roomCode));}catch(e){}}
   if(unsubscribe)unsubscribe();
@@ -635,6 +758,15 @@ input:focus{border-color:var(--accent);background:#fff}
   </div>
 </div>
 
+<!-- ゲスト復帰バナー -->
+<div id="resume-guest-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--accent);color:#fff;padding:12px 16px;text-align:center;font-size:14px;font-weight:600">
+  前回のルーム（コード：<span id="resume-guest-code"></span>）に<span id="resume-guest-name"></span>として参加中でした
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
+    <button onclick="guestResume()" style="background:#fff;color:var(--accent);border:none;border-radius:8px;padding:6px 16px;font-weight:700;cursor:pointer;font-size:13px">復帰する</button>
+    <button onclick="guestResumeCancel()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:8px;padding:6px 16px;font-weight:600;cursor:pointer;font-size:13px">キャンセル</button>
+  </div>
+</div>
+
 <!-- TOP -->
 <div id="s-top" class="screen active">
   <div class="top-inner">
@@ -666,6 +798,16 @@ input:focus{border-color:var(--accent);background:#fff}
     <p style="font-size:12px;color:var(--faint);margin-top:.5rem">1〜<span id="count-preview">4</span> の番号が選択肢になります</p>
   </div>
   <button class="btn btn-primary" onclick="hostOpenRoom()">部屋を作る →</button>
+
+  <!-- 再接続エリア -->
+  <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.25rem">
+    <p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:.75rem">既存のルームに再接続</p>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="reconnect-code" placeholder="コードを入力" maxlength="2" inputmode="numeric"
+        style="font-size:22px;font-weight:700;letter-spacing:6px;text-align:center;flex:1;padding:10px;border:1.5px solid var(--border);border-radius:var(--r);outline:none;font-family:inherit">
+      <button class="btn" style="width:auto;padding:10px 16px;font-size:14px" onclick="hostReconnect()">再接続</button>
+    </div>
+  </div>
 </div>
 
 <!-- HOST: 進行 -->
