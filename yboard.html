@@ -79,14 +79,17 @@ function renderHostView(data){
   const guests=data.guests||{};
   const answers=data.answers||{};
   const names=Object.keys(guests);
-  // スコア同期
-  const scores=data.scores||{};
-  Object.keys(scores).forEach(n=>scoreCache[n]=scores[n]);
-  renderScoreRanking();
   const answered=Object.keys(answers).length;
 
   $('st-guests').textContent=names.length;
   $('st-answered').textContent=answered;
+
+  // スコア同期
+  try{
+    const scores=data.scores||{};
+    Object.keys(scores).forEach(n=>scoreCache[n]=scores[n]);
+    renderScoreRanking();
+  }catch(e){}
 
   // ゲスト一覧
   const el=$('guest-list');
