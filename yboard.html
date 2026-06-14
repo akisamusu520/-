@@ -123,7 +123,7 @@ window.hostRevealResult=function(){
       const btn=document.createElement('button');
       btn.className='num-btn';
       btn.textContent=i;
-      btn.onclick=()=>hostSelectCorrect(i,answers);
+      btn.onclick=()=>hostSelectCorrect(i);
       grid.appendChild(btn);
     }
     $('correct-area').style.display='block';
@@ -131,13 +131,17 @@ window.hostRevealResult=function(){
   });
 };
 
-window.hostSelectCorrect=async function(num,answers){
+window.hostSelectCorrect=async function(num){
+  // 最新データをFirebaseから取得
+  const snap=await get(ref(db,'rooms/'+roomCode));
+  const data=snap.val()||{};
+  const answers=data.answers||{};
   // 正解者に+1
   const winners=Object.entries(answers).filter(e=>e[1]===num).map(e=>e[0]);
   const updates={};
   winners.forEach(name=>{
-    updates['rooms/'+roomCode+'/scores/'+name]=(scoreCache[name]||0)+1;
     scoreCache[name]=(scoreCache[name]||0)+1;
+    updates['rooms/'+roomCode+'/scores/'+name]=scoreCache[name];
   });
   if(Object.keys(updates).length>0) await update(ref(db),updates);
   // ボタン強調
@@ -262,12 +266,15 @@ window.hostSendNext=async function(){
 };
 
 window.hostEnd=async function(){
-  if(unsubscribe)unsubscribe();
-  // 最終スコアを別パスに保存（ゲストが読み取れるように）
-  if(Object.keys(scoreCache).length>0){
-    await set(ref(db,'final/'+roomCode),{scores:scoreCache,ts:Date.now()});
-  }
-  await remove(ref(db,'rooms/'+roomCode));
+  if(unsubscribe){unsubscribe();unsubscribe=null;}
+  try{
+    if(Object.keys(scoreCache).length>0){
+      await set(ref(db,'final/'+roomCode),{scores:scoreCache,ts:Date.now()});
+    }
+  }catch(e){}
+  try{
+    await remove(ref(db,'rooms/'+roomCode));
+  }catch(e){}
   // 主催者終了画面へ
   renderFinalRanking('host-final-ranking');
   show('s-final');
