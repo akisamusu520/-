@@ -73,8 +73,14 @@ input:focus{border-color:var(--accent);background:#fff}
 @keyframes blink{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
 .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1a1917;color:#fff;padding:10px 20px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
 .toast.show{opacity:1}
-.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
-.status-dot.ok{background:var(--success)}.status-dot.err{background:var(--danger)}.status-dot.wait{background:var(--warn)}
+.ranking-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.ranking-row:last-child{border-bottom:none}
+.rank-medal{font-size:20px;min-width:28px;text-align:center}
+.rank-num{font-size:22px;font-weight:700;color:var(--accent);min-width:36px;text-align:center}
+.rank-bar-wrap{flex:1;height:12px;background:var(--bg);border-radius:999px;overflow:hidden}
+.rank-bar{height:100%;border-radius:999px;transition:width .5s}
+.rank-count{font-size:15px;font-weight:700;min-width:36px;text-align:right;color:var(--text)}
+.rank-pct{font-size:12px;color:var(--faint);min-width:36px;text-align:right}
 </style>
 </head>
 <body>
@@ -134,6 +140,8 @@ input:focus{border-color:var(--accent);background:#fff}
     <div class="divider"></div>
     <div id="result-area" style="display:none">
       <div class="chart-wrap" id="chart-wrap"><canvas id="myChart"></canvas></div>
+      <div class="divider"></div>
+      <div id="ranking-list"></div>
       <div class="divider"></div>
     </div>
     <div id="guest-list"></div>
@@ -343,7 +351,31 @@ window.hostRevealResult=function(){
   $('btn-area-run').style.display='none';
   $('btn-area-next').style.display='flex';
   renderChart();
+  renderRanking();
 };
+
+function renderRanking(){
+  var votes=getVotes();
+  var total=votes.reduce(function(a,v){return a+v.count;},0);
+  var sorted=votes.slice().sort(function(a,b){return b.count-a.count;});
+  var medals=['🥇','🥈','🥉'];
+  var html='';
+  var rank=0,prevCount=-1;
+  sorted.forEach(function(v,i){
+    if(v.count!==prevCount){rank=i+1;prevCount=v.count;}
+    var pct=total>0?Math.round(v.count/total*100):0;
+    var barW=total>0?(v.count/total*100):0;
+    var medal=rank<=3&&v.count>0?medals[rank-1]:'';
+    html+='<div class="ranking-row">'+
+      '<span class="rank-medal">'+medal+'</span>'+
+      '<span class="rank-num">'+v.num+'番</span>'+
+      '<div class="rank-bar-wrap"><div class="rank-bar" style="width:'+barW+'%;background:'+COLORS[(v.num-1)%COLORS.length]+'"></div></div>'+
+      '<span class="rank-count">'+v.count+'人</span>'+
+      '<span class="rank-pct">'+pct+'%</span>'+
+    '</div>';
+  });
+  $('ranking-list').innerHTML=html;
+}
 
 window.hostNextQuestion=function(){
   // 現在の選択肢数をデフォルトにセット
