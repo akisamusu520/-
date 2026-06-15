@@ -252,8 +252,8 @@ function renderScoreRankingFromData(scores, members){
   const newSorted=allSorted.filter(([n])=>members[n]==='new');
   el.innerHTML=
     '<div style="display:flex;gap:6px;margin-bottom:.75rem">'+
-      '<button onclick="switchRankTab('all')" id="tab-all" style="flex:1;padding:6px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">全体</button>'+
-      '<button onclick="switchRankTab('new')" id="tab-new" style="flex:1;padding:6px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">新入会</button>'+
+      '<button onclick="switchRankTab(&quot;all&quot;)" id="tab-all" style="flex:1;padding:6px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">全体</button>'+
+      '<button onclick="switchRankTab(&quot;new&quot;)" id="tab-new" style="flex:1;padding:6px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">新入会</button>'+
     '</div>'+
     '<div id="rank-tab-all">'+makeRankingHTML(allSorted)+'</div>'+
     '<div id="rank-tab-new" style="display:none">'+makeRankingHTML(newSorted)+'</div>';
@@ -304,8 +304,8 @@ function renderFinalRankingFromScores(scores,elId,members){
   const uid=elId.replace('-','_');
   el.innerHTML=
     '<div style="display:flex;gap:6px;margin-bottom:.75rem">'+
-      '<button onclick="switchFinalTab('all',''+uid+'')" id="ftab-all-'+uid+'" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">全体ランキング</button>'+
-      '<button onclick="switchFinalTab('new',''+uid+'')" id="ftab-new-'+uid+'" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">新入会ランキング</button>'+
+      '<button onclick="switchFinalTab(&quot;all&quot;,&quot;'+uid+'&quot;)" id="ftab-all-'+uid+'" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">全体ランキング</button>'+
+      '<button onclick="switchFinalTab(&quot;new&quot;,&quot;'+uid+'&quot;)" id="ftab-new-'+uid+'" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">新入会ランキング</button>'+
     '</div>'+
     '<div id="ftab-all-content-'+uid+'">'+makeFinalHTML(allSorted)+'</div>'+
     '<div id="ftab-new-content-'+uid+'" style="display:none">'+makeFinalHTML(newSorted)+'</div>';
