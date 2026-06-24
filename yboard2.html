@@ -117,6 +117,7 @@ window.hostRevealResult=async function(){
   $('result-area').style.display='block';
   $('btn-area-run').style.display='none';
   $('btn-area-next').style.display='flex';
+  $('host-question-num').textContent='第'+(currentQuestion+1)+'問';
   const snap=await get(ref(db,'rooms/'+roomCode));
   const data=snap.val()||{};
   const answers=data.answers||{};
@@ -519,6 +520,7 @@ window.guestResume=async function(){
   const data=snap.val()||{};
   choiceCount=4;
   $('g-name-label').textContent=guestName;
+  $('guest-question-num').textContent='第'+(guestQuestionId+1)+'問';
   buildNumGrid(4);
   show('s-guest-answer');
 
@@ -541,6 +543,7 @@ window.guestResume=async function(){
       guestQuestionId=newQId;
       choiceCount=4;
       guestSelected=null;
+      $('guest-question-num').textContent='第'+(guestQuestionId+1)+'問';
       buildNumGrid(4);
       show('s-guest-answer');
       if(newQId>0) toast('次の問題です');
@@ -874,6 +877,7 @@ input:focus{border-color:var(--accent);background:#fff}
     </div>
     <div class="divider"></div>
     <div id="result-area" style="display:none">
+      <p id="host-question-num" style="font-size:18px;font-weight:800;color:var(--accent);text-align:center;margin-bottom:.75rem"></p>
       <div class="chart-wrap"><canvas id="myChart"></canvas></div>
       <div class="divider"></div>
       <div id="ranking-list"></div>
@@ -925,6 +929,7 @@ input:focus{border-color:var(--accent);background:#fff}
 <!-- GUEST: 回答 -->
 <div id="s-guest-answer" class="screen">
   <div class="card">
+    <p id="guest-question-num" style="font-size:18px;font-weight:800;color:var(--accent);text-align:center;margin-bottom:.5rem"></p>
     <p style="font-size:13px;color:var(--muted);margin-bottom:.25rem" id="g-name-label"></p>
     <div class="num-grid" id="g-num-grid"></div>
     <button class="btn btn-primary" id="g-submit-btn" onclick="guestSubmit()" disabled>送信する →</button>
