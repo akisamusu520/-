@@ -522,7 +522,7 @@ window.guestResume=async function(){
   const data=snap.val()||{};
   choiceCount=4;
   $('g-name-label').textContent=guestName;
-  $('guest-question-num').textContent='第'+(guestQuestionId+1)+'問';
+  setQuestionNum(guestQuestionId+1);
   buildNumGrid(4);
   show('s-guest-answer');
 
@@ -541,11 +541,33 @@ window.guestResume=async function(){
       return;
     }
     const newQId=d.questionId||0;
+    // 結果発表
+    if(d.revealed&&d.correctNum&&(show_result_qid||0)!==newQId){
+      show_result_qid=newQId;
+      const correct=d.correctNum;
+      const myAnswer=guestSelected;
+      const isCorrect=parseInt(myAnswer)===parseInt(correct);
+      $('result-correct-num').textContent=correct+'番';
+      $('result-my-num').textContent=myAnswer?myAnswer+'番':'未回答';
+      if(isCorrect){
+        $('result-icon').textContent='⭕';
+        $('result-label').textContent='正解！';
+        $('result-label').style.color='var(--accent)';
+        $('result-card').style.background='var(--accent-bg)';
+      } else {
+        $('result-icon').textContent='❌';
+        $('result-label').textContent='残念…';
+        $('result-label').style.color='var(--danger)';
+        $('result-card').style.background='var(--danger-bg)';
+      }
+      show('s-guest-result');
+    }
     if(newQId!==guestQuestionId){
       guestQuestionId=newQId;
+      show_result_qid=null;
       choiceCount=4;
       guestSelected=null;
-      $('guest-question-num').textContent='第'+(guestQuestionId+1)+'問';
+      setQuestionNum(guestQuestionId+1);
       buildNumGrid(4);
       show('s-guest-answer');
       if(newQId>0) toast('次の問題です');
@@ -631,7 +653,7 @@ window.guestJoin=async function(){
   const data=snap.val();
   choiceCount=4;
   $('g-name-label').textContent=name;
-  $('guest-question-num').textContent='第'+(guestQuestionId+1)+'問';
+  setQuestionNum(guestQuestionId+1);
   buildNumGrid(4);
   show('s-guest-answer');
 
@@ -662,7 +684,7 @@ window.guestJoin=async function(){
       show_result_qid=newQId;
       const correct=data.correctNum;
       const myAnswer=guestSelected;
-      const isCorrect=myAnswer===correct;
+      const isCorrect=parseInt(myAnswer)===parseInt(correct);
       $('result-correct-num').textContent=correct+'番';
       $('result-my-num').textContent=myAnswer?myAnswer+'番':'未回答';
       if(isCorrect){
@@ -683,7 +705,7 @@ window.guestJoin=async function(){
       show_result_qid=null;
       choiceCount=newCount;
       guestSelected=null;
-      $('guest-question-num').textContent='第'+(guestQuestionId+1)+'問';
+      setQuestionNum(guestQuestionId+1);
       buildNumGrid(4);
       show('s-guest-answer');
       if(newQId>0) toast('次の問題です');
@@ -692,6 +714,7 @@ window.guestJoin=async function(){
 };
 
 let show_result_qid=null;
+function setQuestionNum(n){const el=$('guest-question-num');if(el)el.textContent='第'+n+'問';}
 
 function buildNumGrid(count){
   const grid=$('g-num-grid');
@@ -720,6 +743,7 @@ window.guestSubmit=async function(){
 };
 
 window.guestReAnswer=function(){
+  setQuestionNum(guestQuestionId+1);
   buildNumGrid(4);
   show('s-guest-answer');
 };
