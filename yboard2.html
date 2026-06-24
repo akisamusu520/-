@@ -125,6 +125,8 @@ window.hostRevealResult=async function(){
   renderRanking(answers,4);
   // 自動採点
   const correctNum=answerSequence[currentQuestion];
+  // Firebaseに正解番号を保存（参加者の結果表示用）
+  await update(ref(db,'rooms/'+roomCode),{revealed:true,correctNum:correctNum});
   const winners=Object.entries(answers).filter(e=>e[1]===correctNum).map(e=>e[0]);
   const updates={};
   winners.forEach(name=>{
@@ -350,7 +352,7 @@ window.hostSendNext=async function(){
   currentQuestion++;
   const snap=await get(ref(db,'rooms/'+roomCode+'/questionId'));
   const currentId=(snap.val()||0);
-  await update(ref(db,'rooms/'+roomCode),{choiceCount:4,answers:{},revealed:false,questionId:currentId+1});
+  await update(ref(db,'rooms/'+roomCode),{choiceCount:4,answers:{},revealed:false,correctNum:null,questionId:currentId+1});
   $('run-count').textContent=choiceCount;
   $('result-area').style.display='none';
   $('btn-area-run').style.display='flex';
@@ -629,6 +631,7 @@ window.guestJoin=async function(){
   const data=snap.val();
   choiceCount=4;
   $('g-name-label').textContent=name;
+  $('guest-question-num').textContent='第'+(guestQuestionId+1)+'問';
   buildNumGrid(4);
   show('s-guest-answer');
 
@@ -654,16 +657,41 @@ window.guestJoin=async function(){
     }
     const newCount=data.choiceCount||4;
     const newQId=data.questionId||0;
+    // 結果発表：正解番号が来たら結果画面を表示
+    if(data.revealed&&data.correctNum&&(show_result_qid||0)!==newQId){
+      show_result_qid=newQId;
+      const correct=data.correctNum;
+      const myAnswer=guestSelected;
+      const isCorrect=myAnswer===correct;
+      $('result-correct-num').textContent=correct+'番';
+      $('result-my-num').textContent=myAnswer?myAnswer+'番':'未回答';
+      if(isCorrect){
+        $('result-icon').textContent='⭕';
+        $('result-label').textContent='正解！';
+        $('result-label').style.color='var(--accent)';
+        $('result-card').style.background='var(--accent-bg)';
+      } else {
+        $('result-icon').textContent='❌';
+        $('result-label').textContent='残念…';
+        $('result-label').style.color='var(--danger)';
+        $('result-card').style.background='var(--danger-bg)';
+      }
+      show('s-guest-result');
+    }
     if(newQId!==guestQuestionId){
       guestQuestionId=newQId;
+      show_result_qid=null;
       choiceCount=newCount;
       guestSelected=null;
+      $('guest-question-num').textContent='第'+(guestQuestionId+1)+'問';
       buildNumGrid(4);
       show('s-guest-answer');
       if(newQId>0) toast('次の問題です');
     }
   });
 };
+
+let show_result_qid=null;
 
 function buildNumGrid(count){
   const grid=$('g-num-grid');
@@ -944,6 +972,21 @@ input:focus{border-color:var(--accent);background:#fff}
     <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
     <p style="font-size:13px;color:var(--faint)">次の問題を待っています…</p>
     <button class="btn" style="margin-top:1.5rem;width:auto;padding:9px 20px" onclick="guestReAnswer()">回答しなおす</button>
+  </div>
+</div>
+
+<!-- GUEST: 結果 -->
+<div id="s-guest-result" class="screen">
+  <div class="card" id="result-card" style="text-align:center;padding:2.5rem 1.75rem;transition:background .3s">
+    <p style="font-size:64px;margin:.25rem 0" id="result-icon"></p>
+    <p style="font-size:32px;font-weight:900;margin:.25rem 0" id="result-label"></p>
+    <div class="divider" style="margin:1rem 0"></div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:.25rem">正解番号</p>
+    <p style="font-size:36px;font-weight:800;color:var(--text);margin:.25rem 0" id="result-correct-num"></p>
+    <p style="font-size:13px;color:var(--muted);margin-top:.75rem;margin-bottom:.25rem">あなたの回答</p>
+    <p style="font-size:28px;font-weight:700;color:var(--muted);margin:.25rem 0" id="result-my-num"></p>
+    <div class="dots" style="margin-top:1.5rem"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <p style="font-size:13px;color:var(--faint);margin-top:.5rem">次の問題を待っています…</p>
   </div>
 </div>
 
