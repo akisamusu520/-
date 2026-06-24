@@ -139,6 +139,11 @@ window.hostRevealResult=async function(){
   const msg='第'+(currentQuestion+1)+'問　正解：'+correctNum+'番　正解者：'+winners.length+'人';
   $('correct-result-msg').textContent=msg;
   $('correct-area').style.display='block';
+  // 10問目（最終問）なら次の問題ボタンを非表示
+  if(currentQuestion>=answerSequence.length-1){
+    $('btn-area-next').style.display='none';
+    $('btn-end-area').style.display='flex';
+  }
 };
 
 window.hostSelectCorrect=async function(num){
@@ -388,6 +393,8 @@ document.addEventListener('DOMContentLoaded',function(){
   var b2=document.getElementById('btn-end-2');
   if(b1)b1.addEventListener('click',function(){window.hostEnd();});
   if(b2)b2.addEventListener('click',function(){window.hostEnd();});
+  var b3=document.getElementById('btn-end-3');
+  if(b3)b3.addEventListener('click',function(){window.hostEnd();});
 
   // 前回のゲストセッションが残っていれば復帰を提案
   const savedGuestRoom=localStorage.getItem('yboard_guest_room');
@@ -541,13 +548,12 @@ window.guestResume=async function(){
       return;
     }
     const newQId=d.questionId||0;
-    // 結果発表
-    if(d.revealed&&d.correctNum&&show_result_qid!==newQId){
-      show_result_qid=newQId;
-      const correct=d.correctNum;
+    const correctNum=d.correctNum||null;
+    if(correctNum&&correctNum!==guestLastCorrect){
+      guestLastCorrect=correctNum;
       const myAnswer=guestSelected;
-      const isCorrect=parseInt(myAnswer)===parseInt(correct);
-      $('result-correct-num').textContent=correct+'番';
+      const isCorrect=parseInt(myAnswer)===parseInt(correctNum);
+      $('result-correct-num').textContent=correctNum+'番';
       $('result-my-num').textContent=myAnswer?myAnswer+'番':'未回答';
       if(isCorrect){
         $('result-icon').textContent='⭕';
@@ -562,10 +568,10 @@ window.guestResume=async function(){
       }
       show('s-guest-result');
     }
+    if(!correctNum) guestLastCorrect=null;
     if(newQId!==guestQuestionId){
       guestQuestionId=newQId;
-      show_result_qid=null;
-      choiceCount=4;
+      guestLastCorrect=null;
       guestSelected=null;
       setQuestionNum(guestQuestionId+1);
       buildNumGrid(4);
@@ -677,15 +683,14 @@ window.guestJoin=async function(){
       });
       return;
     }
-    const newCount=data.choiceCount||4;
     const newQId=data.questionId||0;
-    // 結果発表：正解番号が来たら結果画面を表示
-    if(data.revealed&&data.correctNum&&show_result_qid!==newQId){
-      show_result_qid=newQId;
-      const correct=data.correctNum;
+    const correctNum=data.correctNum||null;
+    // 結果発表検知：correctNumが新しくセットされたら結果画面へ
+    if(correctNum&&correctNum!==guestLastCorrect){
+      guestLastCorrect=correctNum;
       const myAnswer=guestSelected;
-      const isCorrect=parseInt(myAnswer)===parseInt(correct);
-      $('result-correct-num').textContent=correct+'番';
+      const isCorrect=parseInt(myAnswer)===parseInt(correctNum);
+      $('result-correct-num').textContent=correctNum+'番';
       $('result-my-num').textContent=myAnswer?myAnswer+'番':'未回答';
       if(isCorrect){
         $('result-icon').textContent='⭕';
@@ -700,10 +705,11 @@ window.guestJoin=async function(){
       }
       show('s-guest-result');
     }
+    // 次の問題へ
+    if(!correctNum) guestLastCorrect=null;
     if(newQId!==guestQuestionId){
       guestQuestionId=newQId;
-      show_result_qid=null;
-      choiceCount=newCount;
+      guestLastCorrect=null;
       guestSelected=null;
       setQuestionNum(guestQuestionId+1);
       buildNumGrid(4);
@@ -713,7 +719,7 @@ window.guestJoin=async function(){
   });
 };
 
-let show_result_qid=null;
+let guestLastCorrect=null;
 function setQuestionNum(n){const el=$('guest-question-num');if(el)el.textContent='第'+n+'問';}
 
 function buildNumGrid(count){
@@ -759,7 +765,7 @@ window.resetAll=function(){
   if(roomCode&&isHost){try{remove(ref(db,'final/'+roomCode));}catch(e){}}
   if(unsubscribe)unsubscribe();
   unsubscribe=null;
-  roomCode='';choiceCount=4;guestName='';guestSelected=null;isHost=false;guestQuestionId=0;
+  roomCode='';choiceCount=4;guestName='';guestSelected=null;isHost=false;guestQuestionId=0;guestLastCorrect=null;
   if(chartInst){chartInst.destroy();chartInst=null;}
   show('s-top');
 };
@@ -952,6 +958,9 @@ input:focus{border-color:var(--accent);background:#fff}
   <div id="btn-area-next" class="btn-row" style="display:none">
     <button class="btn btn-primary" onclick="hostSendNext()">次の問題へ →</button>
     <button id="btn-end-2" class="btn btn-danger" style="width:auto;padding:11px 18px">終了</button>
+  </div>
+  <div id="btn-end-area" class="btn-row" style="display:none">
+    <button class="btn btn-danger" id="btn-end-3">終了・結果発表</button>
   </div>
 </div>
 
