@@ -39,6 +39,8 @@ let scoreCache={};
 let guestQuestionId=0;
 let lastCorrectNum=null;
 let guestMemberType='general'; // "general" or "new"
+const answerSequence="1323413224"; // 10問の答え
+let currentQuestion=0; // 現在の問題番号（0〜9）
 
 // ===== HOST =====
 window.goHost=function(){show('s-host-setup');};
@@ -77,6 +79,7 @@ window.hostOpenRoom=async function(){
   });
 
   // 復帰用にlocalStorageに保存
+  currentQuestion=0;
   localStorage.setItem('yboard_host_room', roomCode);
   localStorage.setItem('yboard_host_count', choiceCount);
   show('s-host-run');
@@ -149,16 +152,6 @@ window.hostSelectCorrect=async function(num){
     updates['rooms/'+roomCode+'/scores/'+name]=scoreCache[name];
   });
   if(Object.keys(updates).length>0) await update(ref(db),updates);
-  lastCorrectNum=num;
-  $('btn-undo-correct').style.display='inline-block';
-  // ボタン強調
-  document.querySelectorAll('#correct-num-grid .num-btn').forEach((b,i)=>{
-    b.classList.toggle('selected',(i+1)===num);
-  });
-  const msg=winners.length>0
-    ? winners.join('、')+'（'+winners.length+'人）に+1点！'
-    : '正解者なし';
-  $('correct-result-msg').textContent=msg;
   // 累計ランキング更新
   renderScoreRanking();
 };
@@ -359,8 +352,9 @@ window.changeNextCount=function(d){
 };
 
 window.hostSendNext=async function(){
-  const newCount=parseInt($('next-count').value)||4;
+  const newCount=4;
   choiceCount=newCount;
+  currentQuestion++;
   const snap=await get(ref(db,'rooms/'+roomCode+'/questionId'));
   const currentId=(snap.val()||0);
   await update(ref(db,'rooms/'+roomCode),{choiceCount:newCount,answers:{},revealed:false,questionId:currentId+1});
@@ -857,15 +851,7 @@ input:focus{border-color:var(--accent);background:#fff}
 <!-- HOST: 設定 -->
 <div id="s-host-setup" class="screen">
   <button class="btn btn-back" onclick="show('s-top')">← 戻る</button>
-  <div class="card">
-    <p style="font-size:13px;color:var(--muted);margin-bottom:.75rem">選択肢の数（1〜10）</p>
-    <div class="stepper">
-      <button class="stepper-btn" onclick="changeCount(-1)">－</button>
-      <input class="stepper-val" type="number" id="choice-count" value="4" min="1" max="10" readonly>
-      <button class="stepper-btn" onclick="changeCount(1)">＋</button>
-    </div>
-    <p style="font-size:12px;color:var(--faint);margin-top:.5rem">1〜<span id="count-preview">4</span> の番号が選択肢になります</p>
-  </div>
+<input type="hidden" id="choice-count" value="4">
   <button class="btn btn-primary" onclick="hostOpenRoom()">部屋を作る →</button>
 
   <!-- 再接続エリア -->
@@ -900,12 +886,12 @@ input:focus{border-color:var(--accent);background:#fff}
       <div class="divider"></div>
       <div id="ranking-list"></div>
       <div class="divider"></div>
-      <div id="correct-area" style="display:none">
+      <div id="correct-area" style="display:none;pointer-events:none">
         <p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:.5rem">正解番号を選ぶ</p>
         <div class="num-grid" id="correct-num-grid"></div>
         <div style="display:flex;align-items:center;gap:10px;margin-top:.5rem">
           <p id="correct-result-msg" style="font-size:13px;color:var(--accent);font-weight:600;flex:1;min-height:1.4em"></p>
-          <button id="btn-undo-correct" onclick="hostUndoCorrect()" style="display:none;font-size:12px;padding:5px 10px;border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;cursor:pointer;white-space:nowrap">↩ 取り消す</button>
+          <button id="btn-undo-correct" style="display:none;font-size:12px;padding:5px 10px;border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn);border-radius:6px;cursor:pointer;white-space:nowrap;pointer-events:none">↩ 取り消す</button>
         </div>
       </div>
       <div class="divider"></div>
@@ -928,16 +914,9 @@ input:focus{border-color:var(--accent);background:#fff}
 
 <!-- HOST: 次の問題 -->
 <div id="s-host-next" class="screen">
-  <div class="card">
-    <p style="font-size:13px;color:var(--muted);margin-bottom:.75rem">次の問題の選択肢の数</p>
-    <div class="stepper">
-      <button class="stepper-btn" onclick="changeNextCount(-1)">－</button>
-      <input class="stepper-val" type="number" id="next-count" value="4" min="1" max="10" readonly>
-      <button class="stepper-btn" onclick="changeNextCount(1)">＋</button>
-    </div>
-    <p style="font-size:12px;color:var(--faint);margin-top:.5rem">1〜<span id="next-count-preview">4</span> の番号が選択肢になります</p>
-  </div>
-  <button class="btn btn-primary" onclick="hostSendNext()">この選択肢数で送信 →</button>
+  <input type="hidden" id="next-count" value="4">
+  <span id="next-count-preview" style="display:none">4</span>
+  <button class="btn btn-primary" onclick="hostSendNext()">次の問題へ送信 →</button>
 </div>
 
 <!-- GUEST: 参加 -->
