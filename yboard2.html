@@ -542,7 +542,7 @@ window.guestResume=async function(){
     }
     const newQId=d.questionId||0;
     // 結果発表
-    if(d.revealed&&d.correctNum&&(show_result_qid||0)!==newQId){
+    if(d.revealed&&d.correctNum&&show_result_qid!==newQId){
       show_result_qid=newQId;
       const correct=d.correctNum;
       const myAnswer=guestSelected;
@@ -680,7 +680,7 @@ window.guestJoin=async function(){
     const newCount=data.choiceCount||4;
     const newQId=data.questionId||0;
     // 結果発表：正解番号が来たら結果画面を表示
-    if(data.revealed&&data.correctNum&&(show_result_qid||0)!==newQId){
+    if(data.revealed&&data.correctNum&&show_result_qid!==newQId){
       show_result_qid=newQId;
       const correct=data.correctNum;
       const myAnswer=guestSelected;
