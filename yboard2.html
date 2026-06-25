@@ -122,7 +122,6 @@ window.hostRevealResult=async function(){
   const data=snap.val()||{};
   const answers=data.answers||{};
   renderChart(answers,4);
-  renderRanking(answers,4);
   // 自動採点
   const correctNum=answerSequence[currentQuestion];
   // Firebaseに正解番号を保存（参加者の結果表示用）
@@ -926,8 +925,7 @@ input:focus{border-color:var(--accent);background:#fff}
       <div class="room-code-label">ゲストに教えるコード（2桁）</div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-      <span style="font-size:13px;font-weight:600;color:var(--muted)">選択肢の数</span>
-      <span style="font-size:20px;font-weight:700;color:var(--accent)" id="run-count">4</span>
+<span id="run-count" style="display:none">4</span>
     </div>
     <div class="stat-row">
       <div class="stat-box"><div class="stat-num" id="st-guests">0</div><div class="stat-label">参加者</div></div>
@@ -937,8 +935,6 @@ input:focus{border-color:var(--accent);background:#fff}
     <div id="result-area" style="display:none">
       <p id="host-question-num" style="font-size:18px;font-weight:800;color:var(--accent);text-align:center;margin-bottom:.75rem"></p>
       <div class="chart-wrap"><canvas id="myChart"></canvas></div>
-      <div class="divider"></div>
-      <div id="ranking-list"></div>
       <div class="divider"></div>
       <div id="correct-area" style="display:none">
         <p id="correct-result-msg" style="font-size:14px;color:var(--accent);font-weight:700;text-align:center;padding:.5rem 0"></p>
