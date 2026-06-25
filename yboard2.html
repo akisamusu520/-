@@ -686,6 +686,7 @@ window.guestJoin=async function(){
     const newQId=data.questionId||0;
     const correctNum=data.correctNum||null;
     // 結果発表検知：correctNumが新しくセットされたら結果画面へ
+    toast('検知: correct='+correctNum+' last='+guestLastCorrect);
     if(correctNum&&correctNum!==guestLastCorrect){
       guestLastCorrect=correctNum;
       const myAnswer=guestSelected;
