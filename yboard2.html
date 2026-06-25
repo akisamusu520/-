@@ -127,7 +127,7 @@ window.hostRevealResult=async function(){
   const correctNum=answerSequence[currentQuestion];
   // Firebaseに正解番号を保存（参加者の結果表示用）
   await update(ref(db,'rooms/'+roomCode),{revealed:true,correctNum:correctNum});
-  const winners=Object.entries(answers).filter(e=>e[1]===correctNum).map(e=>e[0]);
+  const winners=Object.entries(answers).filter(e=>parseInt(e[1])===parseInt(correctNum)).map(e=>e[0]);
   const updates={};
   winners.forEach(name=>{
     scoreCache[name]=(scoreCache[name]||0)+1;
@@ -686,7 +686,6 @@ window.guestJoin=async function(){
     const newQId=data.questionId||0;
     const correctNum=data.correctNum||null;
     // 結果発表検知：correctNumが新しくセットされたら結果画面へ
-    toast('検知: correct='+correctNum+' last='+guestLastCorrect);
     if(correctNum&&correctNum!==guestLastCorrect){
       guestLastCorrect=correctNum;
       const myAnswer=guestSelected;
