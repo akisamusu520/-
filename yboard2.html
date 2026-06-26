@@ -95,6 +95,7 @@ function renderHostView(data){
 
   $('st-guests').textContent=names.length;
   $('st-answered').textContent=answered;
+  $('host-question-num').textContent='第'+(currentQuestion+1)+'問';
 
   // スコア表示（Firebaseデータから直接）
   renderScoreRankingFromData(data.scores||{}, data.members||{});
