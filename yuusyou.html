@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yボード企画 クイズ大会 サドンデスルーレット</title>
+    <!-- 紙吹雪用ライブラリ（ネット接続環境で動作） -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: radial-gradient(circle, #1a0f2e 0%, #080511 100%);
+            color: #fff;
+            text-align: center;
+            padding: 30px 20px;
+            margin: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* 企画・大会タイトルデザイン */
+        .title-badge {
+            font-size: 1.1rem;
+            background: linear-gradient(90deg, #ff4b2b, #ff416c);
+            padding: 6px 20px;
+            border-radius: 50px;
+            display: inline-block;
+            font-weight: bold;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 10px rgba(255, 75, 43, 0.3);
+            margin-bottom: 10px;
+        }
+        h1 {
+            font-size: 3.2rem;
+            background: linear-gradient(to right, #ffe259, #ffa751, #ffe259);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 5px 15px rgba(255,167,81,0.4);
+            margin: 0 0 5px 0;
+            font-weight: 900;
+            animation: shine 4s linear infinite;
+        }
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+        .subtitle {
+            font-size: 1.4rem;
+            color: #d1c7bd;
+            font-weight: bold;
+            margin-bottom: 40px;
+            letter-spacing: 4px;
+            text-shadow: 0 0 8px rgba(255,255,255,0.2);
+        }
+
+        /* コンテナ枠 */
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 40px 30px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+        }
+        
+        textarea {
+            width: 90%;
+            height: 130px;
+            padding: 15px;
+            font-size: 1.3rem;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            border-radius: 12px;
+            border: 1px solid #443c52;
+            margin-bottom: 30px;
+            resize: none;
+            outline: none;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        textarea:focus {
+            border-color: #ffa751;
+            box-shadow: 0 0 15px rgba(255, 167, 81, 0.3);
+        }
+        
+        /* 起動ボタン */
+        button {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b, #ff7b00);
+            background-size: 200% auto;
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 1.8rem;
+            font-weight: 900;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(255, 75, 43, 0.5);
+            transition: all 0.3s;
+            letter-spacing: 2px;
+        }
+        button:hover {
+            transform: scale(1.05);
+            background-position: right center;
+            box-shadow: 0 0 40px rgba(255, 75, 43, 0.8);
+        }
+        button:disabled {
+            background: #3a3a4a;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+            color: #777;
+        }
+
+        /* 抽選表示エリア */
+        #display-area {
+            margin-top: 50px;
+            font-size: 4rem;
+            font-weight: 800;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 2px;
+            color: #8888a0;
+            border-top: 2px dashed rgba(255,255,255,0.1);
+            padding-top: 20px;
+        }
+
+        /* 優勝確定時の超ド派手デザイン */
+        .winner-animation {
+            animation: winner-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            background: linear-gradient(to right, #ffe000, #ff7b00, #ff007b, #ffe000);
+            background-size: 400% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 6rem !important;
+            font-weight: 900;
+            text-shadow: 0 0 40px rgba(255, 224, 0, 0.5);
+            filter: drop-shadow(0px 6px 12px rgba(0,0,0,0.6));
+        }
+        @keyframes winner-pop {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="title-badge">Yボード企画</div>
+    <h1>クイズ大会</h1>
+    <div class="subtitle">⚡ サドンデスルーレット ⚡</div>
+
+    <div class="container">
+        <textarea id="names-input" placeholder="【ここに同点者の名前を改行区切りで入力】&#10;佐藤さん&#10;鈴木さん&#10;高橋さん"></textarea>
+        <br>
+        <button id="start-btn" onclick="startRoulette()">ルーレット起動！</button>
+
+        <div id="display-area">READY</div>
+    </div>
+
+    <script>
+        function startRoulette() {
+            const input = document.getElementById('names-input').value.trim();
+            const display = document.getElementById('display-area');
+            const btn = document.getElementById('start-btn');
+            
+            if (!input) {
+                alert('同点者の名前を入力してください！');
+                return;
+            }
+            
+            const participants = input.split('\n').map(name => name.trim()).filter(name => name !== "");
+            
+            if (participants.length < 2) {
+                alert('同点者は2名以上入力してください！');
+                return;
+            }
+
+            // 演出初期化
+            btn.disabled = true;
+            display.classList.remove('winner-animation');
+            display.style.color = "#fff";
+            display.style.fontSize = "4.5rem";
+            
+            let counter = 0;
+            const duration = 3500; // 演出時間（3.5秒）
+            let intervalTime = 40; // シャッフル速度
+            
+            function shuffle() {
+                const randomIndex = Math.floor(Math.random() * participants.length);
+                display.innerText = participants[randomIndex];
+                counter += intervalTime;
+                
+                // 終盤のドラムロール（スローダウン）演出
+                if (counter > duration * 0.7) {
+                    intervalTime = 120;
+                }
+                if (counter > duration * 0.9) {
+                    intervalTime = 260;
+                }
+                
+                if (counter >= duration) {
+                    // 優勝者決定
+                    const finalWinnerIndex = Math.floor(Math.random() * participants.length);
+                    display.innerHTML = `<span style="font-size: 2.2rem; display:block; color:#ffea00; -webkit-text-fill-color: #ffea00; letter-spacing: 6px; margin-bottom:10px;">🏆 栄光の勝者 🏆</span>${participants[finalWinnerIndex]}`;
+                    display.classList.add('winner-animation');
+                    
+                    // ド派手紙吹雪（左右から150発ずつ）
+                    confetti({
+                        particleCount: 150,
+                        spread: 85,
+                        origin: { x: 0.1, y: 0.65 },
+                        colors: ['#ffe000', '#ff4b2b', '#ff007b', '#ffffff']
+                    });
+                    confetti({
+                        particleCount: 150,
+                        spread: 85,
+                        origin: { x: 0.9, y: 0.65 },
+                        colors: ['#ffe000', '#ff4b2b', '#ff007b', '#ffffff']
+                    });
+                    
+                    // 追撃の中央クラッカー
+                    setTimeout(() => {
+                        confetti({
+                            particleCount: 120,
+                            angle: 90,
+                            spread: 360,
+                            origin: { x: 0.5, y: 0.45 },
+                            colors: ['#ffe000', '#ffffff', '#00ede7']
+                        });
+                    }, 200);
+
+                    btn.disabled = false;
+                } else {
+                    setTimeout(shuffle, intervalTime);
+                }
+            }
+            
+            shuffle();
+        }
+    </script>
+</body>
+</html>
